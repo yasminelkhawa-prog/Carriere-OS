@@ -1,0 +1,67 @@
+# syntax=docker/dockerfile:1.7
+
+FROM composer:2 AS vendor
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader \
+    --no-progress \
+    --no-scripts
+
+COPY . .
+RUN composer dump-autoload --optimize --classmap-authoritative
+
+FROM node:22-bookworm-slim AS rpa-deps
+
+WORKDIR /app/scripts/rpa
+
+COPY scripts/rpa/package.json ./
+RUN npm install --omit=dev --no-audit --no-fund
+
+FROM php:8.3-cli-bookworm AS worker
+
+WORKDIR /var/www/html
+
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV NODE_ENV=production
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    git \
+    unzip \
+    gnupg \
+    libpq-dev \
+    libzip-dev \
+    libicu-dev \
+    && docker-php-ext-install \
+    pdo_pgsql \
+    bcmath \
+    pcntl \
+    intl \
+    zip \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY . .
+COPY --from=vendor /app/vendor ./vendor
+COPY --from=rpa-deps /app/scripts/rpa/node_modules ./scripts/rpa/node_modules
+
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R ug+rwx storage bootstrap/cache \
+    && cd scripts/rpa \
+    && npx playwright install --with-deps chromium
+
+CMD ["php", "artisan", "queue:work", "--queue=automation", "--sleep=1", "--tries=1", "--timeout=600", "--max-time=3600"]

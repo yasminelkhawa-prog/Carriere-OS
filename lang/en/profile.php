@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'Profile Settings',
+    'subtitle' => 'Update your name, avatar, and language preference.',
+    'full_name' => 'Full Name',
+    'locale' => 'Locale',
+    'avatar' => 'Avatar',
+    'save' => 'Save Profile',
+    'updated' => 'Profile updated successfully.',
+    'remove_avatar' => 'Remove Avatar',
+    'avatar_removed' => 'Avatar removed.',
+    'zoom_link' => 'Zoom Personal Meeting Room Link',
+    'save_zoom_link' => 'Save Zoom Link',
+    'password_title' => 'Password Settings',
+    'password_subtitle' => 'Change your current login password.',
+    'current_password' => 'Current Password',
+    'new_password' => 'New Password',
+    'confirm_password' => 'Confirm New Password',
+    'save_password' => 'Update Password',
+    'password_updated' => 'Password updated successfully.',
+    'toggle_show' => 'Show',
+    'toggle_hide' => 'Hide',
+    'errors' => [
+        'current_password_required' => 'Please enter your current password.',
+        'current_password_invalid' => 'The current password is incorrect.',
+        'password_required' => 'Please enter a new password.',
+        'password_min' => 'New password must be at least 8 characters.',
+        'password_confirmed' => 'Password confirmation does not match.',
+    ],
+];

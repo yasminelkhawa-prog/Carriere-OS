@@ -1,0 +1,119 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carriereos-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-carriereos}
+      DB_USERNAME: ${DB_USERNAME:-carriereos}
+      DB_PASSWORD: ${DB_PASSWORD:-carriereos}
+      QUEUE_CONNECTION: database
+      DB_QUEUE_TABLE: queue_jobs
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+
+  queue-worker:
+    image: carriereos-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-carriereos}
+      DB_USERNAME: ${DB_USERNAME:-carriereos}
+      DB_PASSWORD: ${DB_PASSWORD:-carriereos}
+      QUEUE_CONNECTION: database
+      DB_QUEUE_TABLE: queue_jobs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["php", "artisan", "queue:work", "--queue=default", "--sleep=1", "--tries=3", "--timeout=120", "--max-time=3600"]
+    volumes:
+      - app_storage:/var/www/html/storage
+
+  automation-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright-worker
+    image: carriereos-playwright-worker:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-carriereos}
+      DB_USERNAME: ${DB_USERNAME:-carriereos}
+      DB_PASSWORD: ${DB_PASSWORD:-carriereos}
+      QUEUE_CONNECTION: database
+      DB_QUEUE_TABLE: queue_jobs
+      MULTIPOSTING_AUTOMATION_ENABLED: ${MULTIPOSTING_AUTOMATION_ENABLED:-true}
+      MULTIPOSTING_AUTOMATION_QUEUE: automation
+      MULTIPOSTING_AUTOMATION_NODE_BINARY: ${MULTIPOSTING_AUTOMATION_NODE_BINARY:-node}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    shm_size: "1gb"
+    command: ["php", "artisan", "queue:work", "--queue=automation", "--sleep=1", "--tries=1", "--timeout=600", "--max-time=3600"]
+    volumes:
+      - app_storage:/var/www/html/storage
+
+  scheduler:
+    image: carriereos-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_CONNECTION: ${DB_CONNECTION:-pgsql}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_DATABASE: ${DB_DATABASE:-carriereos}
+      DB_USERNAME: ${DB_USERNAME:-carriereos}
+      DB_PASSWORD: ${DB_PASSWORD:-carriereos}
+      QUEUE_CONNECTION: database
+      DB_QUEUE_TABLE: queue_jobs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["php", "artisan", "schedule:work"]
+    volumes:
+      - app_storage:/var/www/html/storage
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-carriereos}
+      POSTGRES_USER: ${DB_USERNAME:-carriereos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-carriereos}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-carriereos} -d ${DB_DATABASE:-carriereos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  app_storage:
+  postgres_data:

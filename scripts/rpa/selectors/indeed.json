@@ -1,0 +1,61 @@
+{
+  "postJobUrl": "https://www.indeed.com/hire/post-job/",
+  "navigationTimeoutMs": 60000,
+  "defaultTimeoutMs": 20000,
+  "auth": {
+    "loginUrl": "https://secure.indeed.com/account/login",
+    "usernameSelector": "input[type=\"email\"], input[name=\"__email\"], input[name=\"email\"]",
+    "passwordSelector": "input[type=\"password\"], input[name=\"__password\"], input[name=\"password\"]",
+    "submitSelector": "button[type=\"submit\"], button:has-text(\"Sign in\"), button:has-text(\"Log in\")",
+    "postLoginReadySelector": "a[href*=\"/hire/post-job\"], a:has-text(\"Post a job\"), nav, header",
+    "loginGateSelector": "a[href*=\"/account/login\"], a:has-text(\"Sign in\"), button:has-text(\"Sign in\"), input[type=\"password\"], text=Additional Verification Required, text=Troubleshooting Cloudflare Errors, iframe[title*=\"challenge\"], iframe[src*=\"challenges.cloudflare.com\"]",
+    "loginUrlPattern": "indeed\\.(com|co\\.[a-z]{2})\\/account\\/login"
+  },
+  "steps": [
+    {
+      "action": "fill",
+      "selector": "input[name=\"jobTitle\"], input[data-testid=\"jobTitle\"], input#jobTitle",
+      "value": "job.title",
+      "required": true
+    },
+    {
+      "action": "fill",
+      "selector": "textarea[name=\"jobDescription\"], textarea#jobDescription, [contenteditable=\"true\"][role=\"textbox\"]",
+      "value": "job.descriptionHtml",
+      "required": true,
+      "useContentEditable": false
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"location\"], input[data-testid=\"location\"], input#jobLocation",
+      "value": "job.location",
+      "required": false
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"companyName\"], input[data-testid=\"companyName\"]",
+      "value": "company.name",
+      "required": false
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"applicationUrl\"], input[name=\"applyUrl\"], input[data-testid=\"applicationUrl\"]",
+      "value": "job.applyUrl",
+      "required": false
+    },
+    {
+      "action": "click",
+      "selector": "button:has-text(\"Continue\"), button:has-text(\"Next\"), button:has-text(\"Review\")",
+      "required": false
+    },
+    {
+      "action": "click",
+      "selector": "button:has-text(\"Post job\"), button:has-text(\"Publish\"), button:has-text(\"Submit\")",
+      "required": false
+    }
+  ],
+  "successCheck": {
+    "selector": "text=Job posted, text=Your job is live, text=Your job has been posted",
+    "timeoutMs": 20000
+  }
+}

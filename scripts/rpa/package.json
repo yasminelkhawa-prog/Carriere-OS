@@ -1,0 +1,14 @@
+{
+  "name": "carriereos-rpa-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "post-job": "node ./post-job.mjs",
+    "extract-cookies": "node ./extract-session-cookies.mjs",
+    "install-browser": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.52.0"
+  }
+}
+

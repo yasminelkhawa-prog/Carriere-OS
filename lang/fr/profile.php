@@ -1,0 +1,31 @@
+<?php
+
+return [
+    'title' => 'Paramètres du profil',
+    'subtitle' => 'Mettez à jour votre nom, avatar et langue.',
+    'full_name' => 'Nom complet',
+    'locale' => 'Langue',
+    'avatar' => 'Avatar',
+    'save' => 'Enregistrer',
+    'updated' => 'Profil mis à jour.',
+    'remove_avatar' => 'Supprimer l avatar',
+    'avatar_removed' => 'Avatar supprime.',
+    'zoom_link' => 'Lien Zoom personnel',
+    'save_zoom_link' => 'Enregistrer lien Zoom',
+    'password_title' => 'Paramètres du mot de passe',
+    'password_subtitle' => 'Modifiez votre mot de passe de connexion actuel.',
+    'current_password' => 'Mot de passe actuel',
+    'new_password' => 'Nouveau mot de passe',
+    'confirm_password' => 'Confirmer le nouveau mot de passe',
+    'save_password' => 'Mettre à jour le mot de passe',
+    'password_updated' => 'Mot de passe mis à jour avec succes.',
+    'toggle_show' => 'Afficher',
+    'toggle_hide' => 'Masquer',
+    'errors' => [
+        'current_password_required' => 'Veuillez saisir votre mot de passe actuel.',
+        'current_password_invalid' => 'Le mot de passe actuel est incorrect.',
+        'password_required' => 'Veuillez saisir un nouveau mot de passe.',
+        'password_min' => 'Le nouveau mot de passe doit contenir au moins 8 caracteres.',
+        'password_confirmed' => 'La confirmation du mot de passe ne correspond pas.',
+    ],
+];

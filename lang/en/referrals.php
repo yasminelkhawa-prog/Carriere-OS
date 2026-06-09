@@ -1,0 +1,75 @@
+<?php
+
+return [
+    'not_available' => 'N/A',
+    'company_required' => [
+        'title' => 'Select a Company',
+        'message' => 'Choose an active company to work with referrals.',
+    ],
+    'create' => [
+        'title' => 'Submit Referral',
+        'heading' => 'Employee Referral Submission',
+        'subheading' => 'Share candidate details so recruiting can review and convert quickly.',
+    ],
+    'index' => [
+        'title' => 'Referrals',
+        'heading' => 'Referral Tracking',
+        'subheading' => 'Track submission, conversion, and final hiring outcomes.',
+        'empty_title' => 'No referrals yet',
+        'empty_message' => 'Submit a referral to start tracking this channel.',
+    ],
+    'fields' => [
+        'candidate_email' => 'Candidate Email',
+        'candidate_name' => 'Candidate Name',
+        'linkedin_url' => 'LinkedIn URL',
+        'resume' => 'Resume (Optional)',
+        'resume_hint' => 'Accepted: PDF only (max 5MB).',
+        'job_placeholder' => 'Select job',
+    ],
+    'filters' => [
+        'status' => 'Status',
+        'status_placeholder' => 'All statuses',
+        'referrer' => 'Referrer',
+        'referrer_placeholder' => 'All referrers',
+        'apply' => 'Apply Filters',
+        'reset' => 'Reset',
+    ],
+    'status' => [
+        'submitted' => 'Submitted',
+        'converted' => 'Converted',
+        'hired' => 'Hired',
+        'rejected' => 'Rejected',
+    ],
+    'columns' => [
+        'candidate' => 'Candidate',
+        'referrer' => 'Referrer',
+        'status' => 'Status',
+        'created' => 'Created',
+        'application' => 'Application',
+        'action' => 'Action',
+        'linkedin' => 'LinkedIn',
+        'resume_attached' => 'Resume attached',
+    ],
+    'actions' => [
+        'new_referral' => 'New Referral',
+        'view_list' => 'View Referrals',
+        'submit' => 'Submit Referral',
+        'cancel' => 'Cancel',
+        'convert' => 'Convert',
+        'converted' => 'Converted',
+        'open_application' => 'Open application',
+    ],
+    'validation' => [
+        'duplicate_referral' => 'You have already submitted this candidate email.',
+        'cannot_convert_terminal' => 'This referral is already in a terminal state.',
+        'already_converted' => 'This referral is already linked to an application.',
+        'missing_pipeline' => 'Selected job is missing a non-terminal pipeline stage.',
+        'duplicate_active_application' => 'An active application already exists for this candidate and job.',
+        'job_invalid' => 'Selected job is invalid for this referral.',
+    ],
+    'flash' => [
+        'created' => 'Referral submitted successfully.',
+        'converted' => 'Referral converted to application.',
+        'convert_failed' => 'Referral conversion failed. Please review the selected job and try again.',
+    ],
+];

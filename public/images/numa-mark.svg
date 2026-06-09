@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-labelledby="numaMarkTitle">
+  <title id="numaMarkTitle">numa mark</title>
+  <defs>
+    <linearGradient id="numaMarkGrad" x1="6" y1="8" x2="58" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D4D7FF"/>
+      <stop offset="0.5" stop-color="#9EA5FF"/>
+      <stop offset="1" stop-color="#7278F6"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="17" width="16" height="16" rx="8" fill="url(#numaMarkGrad)"/>
+  <rect x="22" y="52" width="48" height="16" rx="8" transform="rotate(-58 22 52)" fill="url(#numaMarkGrad)"/>
+</svg>

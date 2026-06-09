@@ -1,0 +1,55 @@
+{
+  "postJobUrl": "https://www.linkedin.com/talent/post-a-job",
+  "navigationTimeoutMs": 60000,
+  "defaultTimeoutMs": 20000,
+  "auth": {
+    "loginUrl": "https://www.linkedin.com/login",
+    "usernameSelector": "#username",
+    "passwordSelector": "#password",
+    "submitSelector": "button[type=\"submit\"]",
+    "postLoginReadySelector": "a[href*=\"/feed\"], a[href*=\"/talent\"], nav",
+    "loginGateSelector": "a[href*=\"/login\"], a[href*=\"/uas/login\"], button:has-text(\"Sign in\")",
+    "loginUrlPattern": "linkedin\\.com\\/(login|checkpoint|challenge|uas\\/login)"
+  },
+  "steps": [
+    {
+      "action": "fill",
+      "selector": "input[name=\"jobTitle\"]",
+      "value": "job.title",
+      "required": true
+    },
+    {
+      "action": "fill",
+      "selector": "[contenteditable=\"true\"][role=\"textbox\"]",
+      "value": "job.descriptionHtml",
+      "required": true,
+      "useContentEditable": true
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"location\"]",
+      "value": "job.location",
+      "required": false
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"applicationUrl\"]",
+      "value": "job.applyUrl",
+      "required": false
+    },
+    {
+      "action": "click",
+      "selector": "button:has-text(\"Continue\")",
+      "required": false
+    },
+    {
+      "action": "click",
+      "selector": "button:has-text(\"Post\")",
+      "required": false
+    }
+  ],
+  "successCheck": {
+    "selector": "text=Your job is now live",
+    "timeoutMs": 15000
+  }
+}

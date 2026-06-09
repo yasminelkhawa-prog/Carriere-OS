@@ -1,0 +1,125 @@
+<?php $attributes ??= new \Illuminate\View\ComponentAttributeBag;
+
+$__newAttributes = [];
+$__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
+    'name' => 'overview',
+]));
+
+foreach ($attributes->all() as $__key => $__value) {
+    if (in_array($__key, $__propNames)) {
+        $$__key = $$__key ?? $__value;
+    } else {
+        $__newAttributes[$__key] = $__value;
+    }
+}
+
+$attributes = new \Illuminate\View\ComponentAttributeBag($__newAttributes);
+
+unset($__propNames);
+unset($__newAttributes);
+
+foreach (array_filter(([
+    'name' => 'overview',
+]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
+    $$__key = $$__key ?? $__value;
+}
+
+$__defined_vars = get_defined_vars();
+
+foreach ($attributes->all() as $__key => $__value) {
+    if (array_key_exists($__key, $__defined_vars)) unset($$__key);
+}
+
+unset($__defined_vars); ?>
+
+<?php
+    $paths = match ((string) $name) {
+        'overview' => [
+            'M2.25 12 10.5 3.75a2.25 2.25 0 0 1 3.182 0L21.75 12',
+            'M4.5 9.75V19.5c0 .414.336.75.75.75h4.5v-4.5c0-.414.336-.75.75-.75h3c.414 0 .75.336.75.75v4.5h4.5c.414 0 .75-.336.75-.75V9.75',
+        ],
+        'platform_console' => [
+            'M3.75 6.75h16.5A2.25 2.25 0 0 1 22.5 9v6a2.25 2.25 0 0 1-2.25 2.25H3.75A2.25 2.25 0 0 1 1.5 15V9a2.25 2.25 0 0 1 2.25-2.25Z',
+            'm7.5 9 3 3-3 3M12.75 15h3.75',
+        ],
+        'company_approvals', 'departments' => [
+            'M3 21h18M4.5 18V6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75V18',
+            'M8.25 9.75h1.5m4.5 0h1.5M8.25 13.5h1.5m4.5 0h1.5',
+        ],
+        'contact_inquiries', 'social_hub', 'faqs' => [
+            'M2.25 12.75A8.25 8.25 0 0 1 10.5 4.5h3A8.25 8.25 0 0 1 21.75 12.75v1.5A2.25 2.25 0 0 1 19.5 16.5h-3.375l-3.507 3.507a.75.75 0 0 1-1.06 0L8.051 16.5H4.5a2.25 2.25 0 0 1-2.25-2.25v-1.5Z',
+            'M8.25 10.5h7.5M8.25 13.5h4.5',
+        ],
+        'ai_diagnostics' => [
+            'M9 3.75h6m-6 16.5h6M4.5 9h15m-15 6h15',
+            'M7.5 6v12m9-12v12',
+        ],
+        'candidate_portal', 'profile' => [
+            'M15.75 6.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z',
+            'M4.5 19.5a8.25 8.25 0 0 1 15 0',
+        ],
+        'assessments', 'sjt_scenarios' => [
+            'M6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6A2.25 2.25 0 0 1 6 3.75Z',
+            'M7.5 8.25h9M7.5 12h9M7.5 15.75h5.25',
+        ],
+        'jobs' => [
+            'M3.75 7.5h16.5A1.5 1.5 0 0 1 21.75 9v10.5A1.5 1.5 0 0 1 20.25 21H3.75A1.5 1.5 0 0 1 2.25 19.5V9a1.5 1.5 0 0 1 1.5-1.5Z',
+            'M8.25 7.5V6A1.5 1.5 0 0 1 9.75 4.5h4.5A1.5 1.5 0 0 1 15.75 6v1.5',
+        ],
+        'candidates', 'user_management' => [
+            'M15 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM4.5 19.5a7.5 7.5 0 0 1 15 0',
+            'M19.5 7.5a2.25 2.25 0 1 1 0 4.5M21 19.5a6 6 0 0 0-4.125-5.715',
+        ],
+        'candidates_kanban' => [
+            'M4.5 4.5h6.75v6.75H4.5V4.5Zm8.25 0h6.75v4.5h-6.75V4.5ZM4.5 12.75h4.5v6.75H4.5v-6.75Zm6 0h9v6.75h-9v-6.75Z',
+        ],
+        'interviews' => [
+            'M7.5 2.25v3m9-3v3M3.75 6h16.5A1.5 1.5 0 0 1 21.75 7.5v11.25A1.5 1.5 0 0 1 20.25 20.25H3.75a1.5 1.5 0 0 1-1.5-1.5V7.5A1.5 1.5 0 0 1 3.75 6Z',
+            'm10.5 9 3 1.5-3 1.5V9Z',
+        ],
+        'referrals' => [
+            'M15 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM4.5 19.5a7.5 7.5 0 0 1 15 0',
+            'M18 10.5h4.5M20.25 8.25v4.5',
+        ],
+        'analytics' => [
+            'M3.75 18h16.5M6.75 15V9m5.25 6V6m5.25 9v-3',
+        ],
+        'fairness' => [
+            'M12 3v18M7.5 7.5h9M6 9.75l-3.75 6h7.5l-3.75-6Zm12 0-3.75 6h7.5l-3.75-6Z',
+        ],
+        'configuration' => [
+            'M10.5 3.75h3M10.5 20.25h3M3.75 10.5v3M20.25 10.5v3',
+            'M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z',
+            'M5.25 5.25 7.5 7.5m9 9 2.25 2.25M18.75 5.25 16.5 7.5m-9 9-2.25 2.25',
+        ],
+        'communication_engine' => [
+            'M3 6.75h18v10.5H3V6.75Z',
+            'm3 1.5 6 5.25a4.5 4.5 0 0 0 6 0L21 8.25',
+        ],
+        'video_configs' => [
+            'M3.75 7.5A2.25 2.25 0 0 1 6 5.25h8.25A2.25 2.25 0 0 1 16.5 7.5v9A2.25 2.25 0 0 1 14.25 18.75H6A2.25 2.25 0 0 1 3.75 16.5v-9Z',
+            'm16.5 9.75 4.5-2.25v9l-4.5-2.25v-4.5Z',
+        ],
+        'exports_history' => [
+            'M12 3v12m0 0 3-3m-3 3-3-3',
+            'M4.5 16.5v2.25A2.25 2.25 0 0 0 6.75 21h10.5a2.25 2.25 0 0 0 2.25-2.25V16.5',
+        ],
+        'health_checklist' => [
+            'M12 3 4.5 6.75v5.25c0 4.5 3 7.875 7.5 9.75 4.5-1.875 7.5-5.25 7.5-9.75V6.75L12 3Z',
+            'm9 12 2.25 2.25L15 10.5',
+        ],
+        'company_values' => [
+            'm12 20.25-1.2-1.095C6.15 14.88 3 12 3 8.625A4.875 4.875 0 0 1 7.875 3.75c1.5 0 2.886.705 3.75 1.8.864-1.095 2.25-1.8 3.75-1.8A4.875 4.875 0 0 1 20.25 8.625c0 3.375-3.15 6.255-7.8 10.53L12 20.25Z',
+        ],
+        default => [
+            'M12 6v6l4.5 2.25M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0Z',
+        ],
+    };
+?>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" <?php echo e($attributes->class('shrink-0')); ?> aria-hidden="true">
+    <?php $__currentLoopData = $paths; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $path): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <path d="<?php echo e($path); ?>" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" />
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+</svg>
+<?php /**PATH C:\Users\ADMIN\Desktop\CarriereOS (5)\CarriereOS\resources\views/components/ui/nav-icon.blade.php ENDPATH**/ ?>

@@ -1,0 +1,47 @@
+{
+  "postJobUrl": "https://jobs.example-board.com/employer/post-job",
+  "navigationTimeoutMs": 45000,
+  "defaultTimeoutMs": 15000,
+  "steps": [
+    {
+      "action": "fill",
+      "selector": "input[name=\"title\"]",
+      "value": "job.title",
+      "required": true
+    },
+    {
+      "action": "fill",
+      "selector": "textarea[name=\"description\"]",
+      "value": "job.descriptionHtml",
+      "required": true
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"city\"]",
+      "value": "job.locationCity",
+      "required": false
+    },
+    {
+      "action": "select",
+      "selector": "select[name=\"employment_type\"]",
+      "value": "job.employmentType",
+      "required": false
+    },
+    {
+      "action": "fill",
+      "selector": "input[name=\"apply_url\"]",
+      "value": "job.applyUrl",
+      "required": true
+    },
+    {
+      "action": "click",
+      "selector": "button[type=\"submit\"]",
+      "required": true
+    }
+  ],
+  "successCheck": {
+    "selector": ".notice-success, .toast-success",
+    "timeoutMs": 10000
+  }
+}
+

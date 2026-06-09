@@ -1,0 +1,75 @@
+<?php
+
+return [
+    'title' => 'Pipeline',
+    'subtitle' => 'Glissez les candidats entre étapes avec automatisations controlees.',
+    'select_company_title' => 'Selectionner une entreprise',
+    'select_company_message' => 'Le Superadmin doit choisir une entreprise avant d utiliser Kanban.',
+    'filters' => [
+        'company' => 'Entreprise',
+        'company_placeholder' => 'Choisir entreprise',
+        'job' => 'Poste',
+        'job_placeholder' => 'Choisir poste',
+        'apply' => 'Charger le tableau',
+    ],
+    'board' => [
+        'empty_stage' => 'Aucun candidat dans cette étape.',
+        'last_activity' => 'Derniere activite',
+        'vrin' => 'VRIN',
+        'terminal_short' => 'T',
+        'rejected_lane' => 'Rejete',
+    ],
+    'pipeline' => [
+        'misconfigured_title' => 'Pipeline mal configure',
+        'misconfigured_subtitle' => 'Le Kanban est bloque tant que le pipeline du poste n\'est pas corrige.',
+        'fix_instructions' => 'Mettez à jour le pipeline du poste avec au moins une étape non terminale et une étape terminale.',
+        'fix_cta' => 'Ouvrir la configuration du pipeline',
+        'errors' => [
+            'no_stages' => 'Aucune étape de pipeline n\'est configuree pour ce poste.',
+            'terminal_required' => 'Ce pipeline ne contient aucune étape terminale.',
+            'non_terminal_required' => 'Ce pipeline ne contient aucune étape non terminale.',
+        ],
+    ],
+    'modal' => [
+        'interview_title' => 'Planifier entretien',
+        'rejected_title' => 'Preparer brouillon de rejet',
+        'terminal_confirm' => 'Confirmer le passage en étape terminale',
+        'scheduled_for' => 'Date/heure entretien',
+        'channel' => 'Canal',
+        'reason' => 'Raison',
+        'xai_reason' => 'Raison XAI',
+        'draft_subject' => 'Sujet brouillon',
+        'draft_body' => 'Message brouillon',
+        'send_rejection' => 'Envoyer le rejet maintenant',
+        'save' => 'Confirmer deplacement',
+        'save_draft' => 'Enregistrer brouillon',
+        'cancel' => 'Annuler',
+        'send' => 'Envoyer',
+    ],
+    'flash' => [
+        'stage_updated' => 'Transition d\'étape terminee.',
+    ],
+    'errors' => [
+        'invalid_drop' => 'Cible de glisser invalide. Carte restauree.',
+        'same_stage' => 'Ce candidat se trouve déjà dans cette colonne.',
+        'cancelled_move' => 'Transition annulée. Carte conservee dans l\'étape precedente.',
+        'confirm_terminal_required' => 'Les étapes terminales exigent une confirmation.',
+        'interview_schedule_required' => 'Planifier l entretien est requis avant le deplacement.',
+        'rejection_reason_required' => 'La raison du rejet est requise.',
+        'pipeline_misconfigured' => 'Le Kanban est bloque car le pipeline de ce poste est mal configure.',
+    ],
+    'default_channel' => 'Appel video',
+    'tasks' => [
+        'interview_prep' => 'Preparer le dossier entretien',
+    ],
+    'rejection' => [
+        'default_draft' => "Bonjour :name,\nNous vous remercions sincèrement de l'intérêt que vous avez porté à notre entreprise et du temps consacré à votre candidature pour le poste :job.\nAprès examen attentif de votre dossier, nous avons décidé de poursuivre notre processus avec d'autres candidats dont le profil correspond davantage à nos besoins actuels. Cette décision ne remet pas en cause vos compétences ni votre valeur professionnelle.\nNous conservons votre candidature et n'hésiterons pas à vous recontacter si une opportunité correspondant à votre profil venait à s'ouvrir.\nNous vous souhaitons plein succès dans vos recherches.\nCordialement,\nL'équipe Recrutement :company",
+    ],
+    'mail' => [
+        'greeting' => 'Bonjour :name,',
+        'interview_subject' => 'Confirmation entretien - :job',
+        'rejection_subject' => 'Votre candidature au poste :job',
+        'interview_line' => 'Votre entretien pour :job est confirme le :datetime via :channel.',
+        'closing' => 'Cordialement, équipe recrutement',
+    ],
+];

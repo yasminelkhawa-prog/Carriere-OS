@@ -1,0 +1,75 @@
+<?php
+
+return [
+    'title' => 'Neural Pipeline Kanban',
+    'subtitle' => 'Drag candidates across pipeline stages with guarded automations.',
+    'select_company_title' => 'Select a Company',
+    'select_company_message' => 'Superadmin must choose a company context before using Kanban.',
+    'filters' => [
+        'company' => 'Company',
+        'company_placeholder' => 'Choose company',
+        'job' => 'Job',
+        'job_placeholder' => 'Choose job',
+        'apply' => 'Load Board',
+    ],
+    'board' => [
+        'empty_stage' => 'No candidates in this stage.',
+        'last_activity' => 'Last activity',
+        'vrin' => 'VRIN',
+        'terminal_short' => 'T',
+        'rejected_lane' => 'Rejected',
+    ],
+    'pipeline' => [
+        'misconfigured_title' => 'Pipeline Misconfigured',
+        'misconfigured_subtitle' => 'Kanban is blocked until the job pipeline is fixed.',
+        'fix_instructions' => 'Update this job pipeline to include at least one non-terminal stage and one terminal stage.',
+        'fix_cta' => 'Open Pipeline Settings',
+        'errors' => [
+            'no_stages' => 'This job has no pipeline stages configured.',
+            'terminal_required' => 'This pipeline is missing a terminal stage.',
+            'non_terminal_required' => 'This pipeline is missing a non-terminal stage.',
+        ],
+    ],
+    'modal' => [
+        'interview_title' => 'Schedule Interview',
+        'rejected_title' => 'Prepare Rejection Draft',
+        'terminal_confirm' => 'Confirm terminal stage move',
+        'scheduled_for' => 'Interview date/time',
+        'channel' => 'Channel',
+        'reason' => 'Reason',
+        'xai_reason' => 'XAI reason',
+        'draft_subject' => 'Draft subject',
+        'draft_body' => 'Draft message',
+        'send_rejection' => 'Send rejection email now',
+        'save' => 'Confirm Move',
+        'save_draft' => 'Save Draft',
+        'cancel' => 'Cancel',
+        'send' => 'Send',
+    ],
+    'flash' => [
+        'stage_updated' => 'Stage transition completed.',
+    ],
+    'errors' => [
+        'invalid_drop' => 'Invalid drop target. Card restored.',
+        'same_stage' => 'Card already in this stage.',
+        'cancelled_move' => 'Transition cancelled. Card kept in previous stage.',
+        'confirm_terminal_required' => 'Terminal stage moves require confirmation.',
+        'interview_schedule_required' => 'Interview scheduling is required before moving this card.',
+        'rejection_reason_required' => 'Rejection reason is required.',
+        'pipeline_misconfigured' => 'Kanban is blocked because this job pipeline is misconfigured.',
+    ],
+    'default_channel' => 'Video call',
+    'tasks' => [
+        'interview_prep' => 'Prepare interview packet',
+    ],
+    'rejection' => [
+        'default_draft' => 'Thank you for your interest in the :job role. After review, we are moving forward with other candidates at this time. Context: :reason',
+    ],
+    'mail' => [
+        'greeting' => 'Hello :name,',
+        'interview_subject' => 'Interview Confirmation - :job',
+        'rejection_subject' => 'Application Update - :job',
+        'interview_line' => 'Your interview for :job is confirmed for :datetime via :channel.',
+        'closing' => 'Regards, Recruitment Team',
+    ],
+];
