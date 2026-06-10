@@ -491,9 +491,10 @@
                                 <tr>
                                     <th scope="col" class="px-6 py-4 font-semibold">Nom complet</th>
                                     <th scope="col" class="px-6 py-4 font-semibold">Score</th>
-                                    <th scope="col" class="px-6 py-4 font-semibold">Formation / Ã‰cole</th>
-                                    <th scope="col" class="px-6 py-4 font-semibold">ExpÃ©rience</th>
-                                    <th scope="col" class="px-6 py-4 font-semibold">DerniÃ¨re entreprise</th>
+                                    <th scope="col" class="px-6 py-4 font-semibold">Formation / École</th>
+                                    <th scope="col" class="px-6 py-4 font-semibold">Expérience</th>
+                                    <th scope="col" class="px-6 py-4 font-semibold">Dernière entreprise</th>
+                                    <th scope="col" class="px-6 py-4 font-semibold">État</th>
                                     <th scope="col" class="px-6 py-4 font-semibold text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -528,6 +529,22 @@
                                         <td class="px-6 py-4 truncate max-w-[200px]" title="{{ $lastCompany }}">
                                             {{ $lastCompany }}
                                         </td>
+                                        <td class="whitespace-nowrap px-6 py-4">
+                                            <form action="{{ route('candidates.move-stage', ['application' => $app->id]) }}" method="POST" class="inline">
+                                                @csrf
+                                                <select name="stage_id" onchange="this.form.submit()" class="text-sm rounded-lg border-slate-200 py-1 pl-2 pr-6">
+                                                    @if($app->job && $app->job->pipelineStages)
+                                                        @foreach($app->job->pipelineStages as $stage)
+                                                            <option value="{{ $stage->id }}" {{ $app->current_stage_id === $stage->id ? 'selected' : '' }}>
+                                                                {{ $stage->stage_label }}
+                                                            </option>
+                                                        @endforeach
+                                                    @else
+                                                        <option value="">-</option>
+                                                    @endif
+                                                </select>
+                                            </form>
+                                        </td>
                                         <td class="whitespace-nowrap px-6 py-4 text-right">
                                             <a href="{{ route('candidates.index', array_merge(request()->query(), ['application_id' => $app->id])) }}" class="inline-flex items-center rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-aura-700 border border-aura-200 shadow-sm transition hover:bg-aura-50">
                                                 Voir le profil
@@ -536,8 +553,8 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-6 py-8 text-center text-slate-500">
-                                            Aucun candidat trouvÃƒÂ© pour ce filtre.
+                                        <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+                                            Aucun candidat trouvé pour ce filtre.
                                         </td>
                                     </tr>
                                 @endforelse
