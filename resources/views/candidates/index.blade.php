@@ -460,7 +460,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Poste Actuel</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $currentJob }}">{{ $currentJob }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $currentJob }}">{{ $currentJob }}</p>
                                                     </div>
                                                 </div>
                                                 
@@ -472,7 +472,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Entreprise Actuelle</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $currentCompany }}">{{ $currentCompany }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $currentCompany }}">{{ $currentCompany }}</p>
                                                     </div>
                                                 </div>
 
@@ -508,7 +508,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Établissement Formation</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $school }}">{{ $school }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $school }}">{{ $school }}</p>
                                                     </div>
                                                 </div>
 
@@ -520,7 +520,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Formation</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $degree }}">{{ $degree }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $degree }}">{{ $degree }}</p>
                                                     </div>
                                                 </div>
 
@@ -532,7 +532,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Adresse E-mail</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $email }}">{{ $email }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $email }}">{{ $email }}</p>
                                                     </div>
                                                 </div>
 
@@ -544,7 +544,7 @@
                                                     </div>
                                                     <div>
                                                         <p class="text-xs text-slate-500 uppercase tracking-wider">Téléphone</p>
-                                                        <p class="font-medium text-slate-900 truncate max-w-[200px]" title="{{ $phone }}">{{ $phone }}</p>
+                                                        <p class="font-medium text-slate-900 break-words" title="{{ $phone }}">{{ $phone }}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -717,13 +717,13 @@
                                                 <span class="text-slate-400">-</span>
                                             @endif
                                         </td>
-                                        <td class="px-6 py-4 truncate max-w-[200px]" title="{{ $school }}">
+                                        <td class="px-6 py-4 break-words" title="{{ $school }}">
                                             {{ $school }}
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-4">
                                             {{ $experience }}
                                         </td>
-                                        <td class="px-6 py-4 truncate max-w-[200px]" title="{{ $lastCompany }}">
+                                        <td class="px-6 py-4 break-words" title="{{ $lastCompany }}">
                                             {{ $lastCompany }}
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-4">
