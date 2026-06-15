@@ -25,8 +25,12 @@ return new class extends Migration
             $table->unique(['company_id', 'referrer_user_id', 'candidate_email'], 'referrals_company_referrer_email_unique');
         });
 
-        DB::statement('ALTER TABLE referrals DROP CONSTRAINT IF EXISTS referrals_status_check');
-        DB::statement("ALTER TABLE referrals ADD CONSTRAINT referrals_status_check CHECK (status IN ('submitted','converted','hired','rejected'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE referrals DROP CONSTRAINT IF EXISTS referrals_status_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE referrals ADD CONSTRAINT referrals_status_check CHECK (status IN ('submitted','converted','hired','rejected'))");
+        }
     }
 
     public function down(): void

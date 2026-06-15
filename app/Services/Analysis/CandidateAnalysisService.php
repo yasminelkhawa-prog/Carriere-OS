@@ -73,10 +73,38 @@ class CandidateAnalysisService
         'figma', 'sketch', 'photoshop', 'illustrator', 'product management',
     ];
 
+    /**
+     * Grammatical / recruiting-boilerplate tokens that are never skills on their own.
+     * Used to discard filler when deriving required skills from the job description.
+     */
+    private const SKILL_TERM_STOPWORDS = [
+        // French articles / prepositions / pronouns / conjunctions
+        'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'd', 'au', 'aux', 'et', 'ou', 'a',
+        'en', 'dans', 'pour', 'par', 'sur', 'avec', 'sans', 'nous', 'vous', 'je', 'il', 'elle',
+        'ils', 'elles', 'on', 'notre', 'nos', 'votre', 'vos', 'ce', 'cet', 'cette', 'ces', 'son',
+        'sa', 'ses', 'leur', 'leurs', 'qui', 'que', 'qui', 'est', 'sont', 'etre', 'plus',
+        // French recruiting boilerplate
+        'recherchons', 'recherche', 'cherchons', 'poste', 'candidat', 'candidate', 'profil',
+        'experience', 'experiences', 'exige', 'exigee', 'exigees', 'requis', 'requise', 'requises',
+        'competences', 'competence', 'annees', 'ans', 'niveau', 'bonne', 'maitrise', 'courant',
+        'avance', 'debutant', 'mission', 'missions', 'rejoindre', 'equipe', 'entreprise', 'societe',
+        'fort', 'forte', 'capacite', 'sens', 'esprit',
+        // English filler
+        'the', 'an', 'and', 'or', 'of', 'to', 'in', 'for', 'with', 'on', 'our', 'your', 'we',
+        'you', 'is', 'are', 'be', 'as', 'at', 'looking', 'seeking', 'years', 'experience',
+        'skills', 'required', 'must', 'have', 'strong', 'team', 'role', 'job',
+        // Language names (handled by the dedicated language component, not the skills one)
+        'anglais', 'francais', 'arabe', 'espagnol', 'allemand', 'italien', 'amazigh',
+        'english', 'french', 'arabic', 'spanish', 'german',
+    ];
+
     private const LANGUAGE_KEYWORDS = [
         'english', 'french', 'german', 'spanish', 'italian', 'arabic',
         'urdu', 'hindi', 'mandarin', 'chinese', 'japanese', 'korean',
         'portuguese', 'dutch', 'turkish', 'russian',
+        // French-language CV terms
+        'anglais', 'francais', 'français', 'arabe', 'espagnol', 'allemand', 'italien',
+        'amazigh', 'neerlandais', 'néerlandais', 'russe', 'turc', 'portugais', 'chinois',
     ];
 
     private const CERTIFICATION_KEYWORDS = [
@@ -1652,25 +1680,109 @@ class CandidateAnalysisService
 
     private function containsKeyword(Collection $candidateSkills, string $requirement): bool
     {
-        return $candidateSkills->contains(
-            static fn (string $candidateSkill): bool => str_contains($candidateSkill, $requirement)
-                || str_contains($requirement, $candidateSkill)
-        );
+        $foldedRequirement = $this->foldKeyword($requirement);
+        if ($foldedRequirement === '') {
+            return false;
+        }
+
+        return $candidateSkills->contains(function (string $candidateSkill) use ($foldedRequirement): bool {
+            $foldedCandidate = $this->foldKeyword($candidateSkill);
+
+            return $foldedCandidate !== ''
+                && (str_contains($foldedCandidate, $foldedRequirement)
+                    || str_contains($foldedRequirement, $foldedCandidate));
+        });
     }
 
     /**
+     * Lowercase and strip accents/diacritics so "mécanique" and "mecanique" match.
+     */
+    private function foldKeyword(string $value): string
+    {
+        $value = Str::lower(trim($value));
+        $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+
+        return is_string($transliterated) && $transliterated !== '' ? $transliterated : $value;
+    }
+
+    /**
+     * Derive the required skills for a job from its own description text, rather than
+     * intersecting with a fixed vocabulary. Any well-known tech token present is added
+     * as a supplementary safety net so software roles keep working too.
+     *
      * @return array<int, string>
      */
     private function extractSkillKeywords(string $text): array
     {
-        $normalizedText = Str::lower($text);
+        $dynamic = $this->extractJobSkillTerms($text);
 
-        return collect(self::SKILL_KEYWORDS)
+        $foldedText = $this->foldKeyword($text);
+        $known = collect(self::SKILL_KEYWORDS)
             ->map(static fn (string $keyword): string => Str::lower(trim($keyword)))
-            ->filter(static fn (string $keyword): bool => $keyword !== '' && str_contains($normalizedText, $keyword))
+            ->filter(fn (string $keyword): bool => $keyword !== '' && str_contains($foldedText, $this->foldKeyword($keyword)))
+            ->all();
+
+        return collect(array_merge($dynamic, $known))
+            ->map(static fn (mixed $value): string => trim((string) $value))
+            ->filter(static fn (string $value): bool => $value !== '')
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * Extract candidate-comparable skill phrases directly from a job description.
+     * Prefers an explicit "compétences / requis / skills" section when present, splits
+     * on list delimiters, folds accents, and discards grammatical/boilerplate filler.
+     *
+     * @return array<int, string>
+     */
+    private function extractJobSkillTerms(string $text): array
+    {
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+        if ($text === '') {
+            return [];
+        }
+
+        // Focus on the requirements/skills part of the description when it is signposted.
+        $foldedText = $this->foldKeyword($text);
+        $segment = $text;
+        foreach (['competences', 'skills', 'requis', 'required', 'qualifications', 'profil recherche', 'savoir-faire', 'must have', 'must-have'] as $cue) {
+            $position = mb_strpos($foldedText, $cue);
+            if ($position !== false) {
+                $segment = mb_substr($text, $position);
+                break;
+            }
+        }
+
+        $parts = preg_split('/[,;\/\n\r\x{2022}\x{00B7}]+| - | \x{2013} | \x{2014} /u', $segment) ?: [];
+
+        $terms = [];
+        foreach ($parts as $part) {
+            $folded = trim($this->foldKeyword((string) $part));
+            $length = mb_strlen($folded);
+            if ($folded === '' || $length < 3 || $length > 45) {
+                continue;
+            }
+
+            $tokens = array_values(array_filter(explode(' ', $folded), static fn (string $token): bool => $token !== ''));
+            if (count($tokens) > 6) {
+                // Sentence-like fragment rather than a discrete skill — skip the noise.
+                continue;
+            }
+
+            $meaningful = array_filter(
+                $tokens,
+                static fn (string $token): bool => mb_strlen($token) >= 2 && ! in_array($token, self::SKILL_TERM_STOPWORDS, true)
+            );
+            if ($meaningful === []) {
+                continue;
+            }
+
+            $terms[$folded] = true;
+        }
+
+        return array_keys($terms);
     }
 
     /**
@@ -1678,11 +1790,11 @@ class CandidateAnalysisService
      */
     private function extractLanguageKeywords(string $text): array
     {
-        $normalizedText = Str::lower($text);
+        $foldedText = $this->foldKeyword($text);
 
         return collect(self::LANGUAGE_KEYWORDS)
             ->map(static fn (string $keyword): string => Str::lower(trim($keyword)))
-            ->filter(static fn (string $keyword): bool => $keyword !== '' && str_contains($normalizedText, $keyword))
+            ->filter(fn (string $keyword): bool => $keyword !== '' && str_contains($foldedText, $this->foldKeyword($keyword)))
             ->unique()
             ->values()
             ->all();

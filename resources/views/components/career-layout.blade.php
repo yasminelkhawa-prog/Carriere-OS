@@ -1,6 +1,7 @@
 @props([
     'title' => null,
     'company' => null,
+    'wide' => false,
 ])
 
 <!DOCTYPE html>
@@ -13,7 +14,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="aura-background min-h-full" data-select2-warning="{{ __('ui.toasts.select2_fallback') }}">
-        <div class="mx-auto min-h-screen w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div class="mx-auto min-h-screen w-full {{ $wide ? 'max-w-[98%] xl:max-w-[1600px] 2xl:max-w-[1800px]' : 'max-w-7xl' }} px-4 py-6 sm:px-6 lg:px-8">
             <header class="mb-6 rounded-2xl border border-white/70 bg-white/70 px-5 py-4 shadow-[0_20px_55px_-36px_rgba(100,103,242,0.65)] backdrop-blur-2xl">
                 @php
                     $activeLocale = app()->getLocale();
@@ -50,9 +51,6 @@
                 </div>
             </header>
             {{ $slot }}
-            <footer class="mt-8 rounded-2xl border border-white/70 bg-white/75 px-5 py-4 text-center text-xs text-slate-600 backdrop-blur-2xl">
-                <p class="font-medium uppercase tracking-[0.18em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
-            </footer>
         </div>
     </body>
 </html>

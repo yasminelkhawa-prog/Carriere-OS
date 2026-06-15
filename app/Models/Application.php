@@ -38,6 +38,13 @@ class Application extends Model
         'utm_source',
         'utm_campaign',
         'utm_medium',
+        'cv_id',
+        'score',
+        'ai_result_json',
+    ];
+
+    protected $casts = [
+        'ai_result_json' => 'array',
     ];
 
     /**
@@ -56,6 +63,11 @@ class Application extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function cv(): BelongsTo
+    {
+        return $this->belongsTo(Cv::class);
     }
 
     public function candidate(): BelongsTo
@@ -181,5 +193,10 @@ class Application extends Model
     public function onboardingTasks(): HasMany
     {
         return $this->hasMany(OnboardingTask::class)->orderByDesc('created_at');
+    }
+
+    public function psyTests(): HasMany
+    {
+        return $this->hasMany(PsyTest::class);
     }
 }

@@ -27,8 +27,12 @@ return new class extends Migration
             $table->index(['source', 'created_at']);
         });
 
-        DB::statement("ALTER TABLE contact_inquiries DROP CONSTRAINT IF EXISTS contact_inquiries_status_check");
-        DB::statement("ALTER TABLE contact_inquiries ADD CONSTRAINT contact_inquiries_status_check CHECK (status IN ('new', 'in_progress', 'resolved', 'closed'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE contact_inquiries DROP CONSTRAINT IF EXISTS contact_inquiries_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE contact_inquiries ADD CONSTRAINT contact_inquiries_status_check CHECK (status IN ('new', 'in_progress', 'resolved', 'closed'))");
+        }
     }
 
     public function down(): void

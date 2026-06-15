@@ -74,22 +74,24 @@ class DashboardController extends Controller
         
         $totalPostes = $needs->count();
 
-        // 1. Féminin / Masculin (total)
-        $totalSexe = $needs->whereNotNull('gender')->count() ?: 1;
-        $nbFemmes = $needs->whereIn('gender', ['F', 'Femme', 'female'])->count();
-        $pctFemme = round(($nbFemmes / $totalSexe) * 100);
-        $pctHomme = 100 - $pctFemme;
+        // 1. Féminin / Masculin (clôturés)
+        $closedNeeds = $needs->filter(fn ($need): bool => $this->normalizeNeedStatus($need->status) === 'cloture');
+        $totalSexe = $closedNeeds->filter(fn ($need): bool => $this->normalizeNeedGender($need->gender) !== null)->count();
+        $nbFemmes = $closedNeeds->filter(fn ($need): bool => $this->normalizeNeedGender($need->gender) === 'femme')->count();
+        $nbHommes = $totalSexe - $nbFemmes;
+        $pctFemme = $totalSexe > 0 ? round(($nbFemmes / $totalSexe) * 100) : 0;
+        $pctHomme = $totalSexe > 0 ? 100 - $pctFemme : 0;
         $genderStats = [
             'total' => $totalSexe,
             'femme' => $nbFemmes,
-            'homme' => $totalSexe - $nbFemmes,
+            'homme' => $nbHommes,
             'pct_femme' => $pctFemme,
             'pct_homme' => $pctHomme
         ];
 
         // 2. Statut Poste BC vs WC (Donut)
-        $totalBc = $needs->where('worker_type', 'BC')->count();
-        $totalWc = $needs->where('worker_type', 'WC')->count();
+        $totalBc = $needs->filter(fn ($need): bool => $this->normalizeWorkerType($need->worker_type) === 'BC')->count();
+        $totalWc = $needs->filter(fn ($need): bool => $this->normalizeWorkerType($need->worker_type) === 'WC')->count();
         $totalBcPct = ($totalBc + $totalWc) > 0 ? round(($totalBc / ($totalBc + $totalWc)) * 100) : 0;
         $totalWcPct = ($totalBc + $totalWc) > 0 ? round(($totalWc / ($totalBc + $totalWc)) * 100) : 0;
 
@@ -148,14 +150,15 @@ class DashboardController extends Controller
         ];
 
         // Taux de Clôture
-        $tauxCloture = ['Global' => $totalPostes > 0 ? round(($needs->where('status', 'Clôturé')->count() / $totalPostes) * 100) : 0];
-        
+        $clotureCount = fn ($collection) => $collection->filter(fn ($need): bool => $this->normalizeNeedStatus($need->status) === 'cloture')->count();
+        $tauxCloture = ['Global' => $totalPostes > 0 ? round(($clotureCount($needs) / $totalPostes) * 100) : 0];
+
         $parDirection = [];
         foreach ($needs->groupBy('department_id') as $deptId => $deptNeeds) {
             $deptName = $deptNeeds->first()->department->name ?? 'Unknown';
             // Simplified name for chart
             $shortName = explode(' ', $deptName)[0];
-            $tauxCloture[$shortName] = $deptNeeds->count() > 0 ? round(($deptNeeds->where('status', 'Clôturé')->count() / $deptNeeds->count()) * 100) : 0;
+            $tauxCloture[$shortName] = $deptNeeds->count() > 0 ? round(($clotureCount($deptNeeds) / $deptNeeds->count()) * 100) : 0;
             $parDirection[$deptName] = [
                 'total' => $deptNeeds->count(),
             ];
@@ -168,9 +171,9 @@ class DashboardController extends Controller
         // "Clôturé"          = job status 'closed' (candidat embauché)
         $statutPostes = [
             'total'      => $totalPostes,
-            'pas_encore' => $needs->where('status', 'Pas encore lancé')->count(),
-            'en_cours'   => $needs->where('status', 'En cours')->count(),
-            'cloture'    => $needs->where('status', 'Clôturé')->count(),
+            'pas_encore' => $needs->filter(fn ($need): bool => $this->normalizeNeedStatus($need->status) === 'pas_encore')->count(),
+            'en_cours'   => $needs->filter(fn ($need): bool => $this->normalizeNeedStatus($need->status) === 'en_cours')->count(),
+            'cloture'    => $needs->filter(fn ($need): bool => $this->normalizeNeedStatus($need->status) === 'cloture')->count(),
         ];
 
         return view('dashboard.overview', [
@@ -192,6 +195,66 @@ class DashboardController extends Controller
                 'parDirection' => $parDirection
             ]
         ]);
+    }
+
+    /**
+     * Map the many status conventions in the data (en_cours, "En cours", in_progress,
+     * pas_encore, "Pas encore lancé", draft, cloture, "Clôturé", closed) to one of
+     * three canonical buckets so the dashboard stays in sync regardless of the source.
+     */
+    private function normalizeNeedStatus(?string $status): string
+    {
+        $value = $this->foldText((string) $status);
+
+        if ($value === '' || str_contains($value, 'pas encore') || str_contains($value, 'pas_encore') || str_contains($value, 'draft') || str_contains($value, 'brouillon')) {
+            return 'pas_encore';
+        }
+        if (str_contains($value, 'clotur') || str_contains($value, 'closed') || str_contains($value, 'pourvu') || str_contains($value, 'ferme')) {
+            return 'cloture';
+        }
+
+        // Everything else (en cours / en_cours / in_progress / published / publie) is active.
+        return 'en_cours';
+    }
+
+    private function normalizeWorkerType(?string $workerType): ?string
+    {
+        $value = $this->foldText((string) $workerType);
+        if ($value === '') {
+            return null;
+        }
+        if (str_contains($value, 'wc') || str_contains($value, 'cadre') || str_contains($value, 'white')) {
+            return 'WC';
+        }
+        if (str_contains($value, 'bc') || str_contains($value, 'ouvrier') || str_contains($value, 'employe') || str_contains($value, 'blue') || str_contains($value, 'technicien')) {
+            return 'BC';
+        }
+
+        return null;
+    }
+
+    private function normalizeNeedGender(?string $gender): ?string
+    {
+        $value = $this->foldText((string) $gender);
+        if ($value === '') {
+            return null;
+        }
+        if ($value === 'f' || str_contains($value, 'femme') || str_contains($value, 'female') || str_contains($value, 'feminin')) {
+            return 'femme';
+        }
+        if ($value === 'm' || str_contains($value, 'homme') || str_contains($value, 'male') || str_contains($value, 'masculin')) {
+            return 'homme';
+        }
+
+        return null;
+    }
+
+    private function foldText(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+
+        return is_string($transliterated) && $transliterated !== '' ? $transliterated : $value;
     }
 
     public function exportOverview(Request $request): StreamedResponse|RedirectResponse

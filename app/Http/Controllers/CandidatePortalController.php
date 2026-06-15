@@ -6,10 +6,12 @@ use App\Models\AiRequest;
 use App\Models\Application;
 use App\Models\ApplicationActivityEvent;
 use App\Models\Candidate;
+use App\Models\CandidateDocument;
 use App\Models\Company;
 use App\Models\CompanyMembership;
 use App\Models\CompanyValue;
 use App\Models\Contract;
+use App\Models\CvParsingResult;
 use App\Models\FaqItem;
 use App\Models\Interview;
 use App\Models\Job;
@@ -24,7 +26,6 @@ use App\Models\StrategyLabBrief;
 use App\Models\User;
 use App\Models\VideoConfig;
 use App\Models\VideoResponse;
-use App\Services\Analysis\CandidateAnalysisService;
 use App\Services\Communication\CommunicationEngineService;
 use App\Services\SocialHub\SocialHubService;
 use App\Support\Audit\SensitiveEventRecorder;
@@ -32,6 +33,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -84,18 +86,6 @@ class CandidatePortalController extends Controller
         return view('candidate.updates', $this->buildCandidatePortalViewData($company, $candidate));
     }
 
-    public function account(Request $request, Company $company): View|RedirectResponse
-    {
-        $context = $this->resolveCandidateContext($request, $company);
-        if ($context instanceof RedirectResponse) {
-            return $context;
-        }
-
-        [$candidate] = $context;
-
-        return view('candidate.account', $this->buildCandidatePortalViewData($company, $candidate));
-    }
-
     public function statusTracker(Request $request, Company $company): JsonResponse
     {
         $context = $this->resolveCandidateContext($request, $company);
@@ -121,43 +111,13 @@ class CandidatePortalController extends Controller
                         'timezone',
                     ])
                     ->orderBy('scheduled_start_at'),
-                'strategyLabBrief' => fn ($query) => $query->with(['submission', 'aiSummary', 'application.job:id,title']),
-                'contract',
-                'onboardingTasks',
-                'reverseFeedback',
-                'scoring:id,application_id,global_match_score,vrin_json,source_status_json,xai_summary,analysis_status,updated_at',
-                'unifiedInterviewReport:id,application_id,xai_summary,ocean_extraversion,ocean_agreeableness,updated_at',
-                'sjtResponses:id,application_id,ai_score,ai_feedback_json,updated_at',
             ])
             ->where('company_id', $company->id)
             ->where('candidate_id', $candidate->id)
             ->orderByDesc('created_at')
             ->get();
 
-        $videoAssessments = $this->buildVideoAssessments((string) $company->id, $applications);
-        $sjtAssessments = $this->buildSjtAssessments((string) $company->id, $applications);
-        $videoByApplication = collect($videoAssessments)->keyBy(
-            static fn (array $item): string => (string) data_get($item, 'application.id')
-        );
-        $sjtByApplication = collect($sjtAssessments)->keyBy(
-            static fn (array $item): string => (string) data_get($item, 'application.id')
-        );
-
-        $nextSteps = $applications->mapWithKeys(
-            fn (Application $application): array => [
-                (string) $application->id => $this->resolveNextStep(
-                    $application,
-                    $videoByApplication->get((string) $application->id),
-                    $sjtByApplication->get((string) $application->id)
-                ),
-            ]
-        );
-
-        $trackers = $this->buildStatusTrackers(
-            companyId: (string) $company->id,
-            applications: $applications,
-            nextSteps: $nextSteps
-        );
+        $trackers = $this->buildStatusTrackers($applications);
 
         return response()->json([
             'ok' => true,
@@ -246,9 +206,6 @@ class CandidatePortalController extends Controller
                 'onboardingDocuments',
                 'onboardingScheduleItems',
                 'onboardingTasks',
-                'scoring:id,application_id,global_match_score,vrin_json,source_status_json,xai_summary,analysis_status,updated_at',
-                'unifiedInterviewReport:id,application_id,xai_summary,ocean_extraversion,ocean_agreeableness,updated_at',
-                'sjtResponses:id,application_id,ai_score,ai_feedback_json,updated_at',
             ])
             ->where('company_id', $company->id)
             ->where('candidate_id', $candidate->id)
@@ -323,12 +280,7 @@ class CandidatePortalController extends Controller
             ]
         );
 
-        $statusTrackers = $this->buildStatusTrackers(
-            companyId: (string) $company->id,
-            applications: $applications,
-            nextSteps: $nextSteps
-        );
-        $xaiInsights = $this->buildXaiInsights($applications);
+        $statusTrackers = $this->buildStatusTrackers($applications);
 
         $socialHubEligibleApplications = $applications
             ->filter(fn (Application $application): bool => $this->isPreselectedForSocialHub($application))
@@ -344,12 +296,18 @@ class CandidatePortalController extends Controller
             ->orderByDesc('created_at')
             ->limit(3)
             ->get();
+        $matchingJobs = $this->findMatchingOpenJobs(
+            $openJobs,
+            $appliedJobIds,
+            $this->resolveCandidateSkillKeywords($candidate)
+        );
         $portalNotifications = $this->buildPortalNotifications(
             companyId: (string) $company->id,
             applications: $applications,
             videoAssessments: $videoAssessments,
             sjtAssessments: $sjtAssessments,
-            canAccessSocialHub: $canAccessSocialHub
+            canAccessSocialHub: $canAccessSocialHub,
+            matchingJobs: $matchingJobs
         );
         $reverseFeedbackEligibility = $applications->mapWithKeys(
             fn (Application $application): array => [
@@ -361,6 +319,10 @@ class CandidatePortalController extends Controller
                 (string) $application->id => $this->isInHiredFlow($application),
             ]
         );
+
+        $cvTips = (array) trans('cv_tips.items');
+        $cvTipsCount = count($cvTips);
+        $cvTipIndex = $cvTipsCount > 0 ? now()->dayOfYear % $cvTipsCount : 0;
 
         return [
             'company' => $company,
@@ -376,7 +338,6 @@ class CandidatePortalController extends Controller
             'videoAssessments' => $videoAssessments,
             'sjtAssessments' => $sjtAssessments,
             'statusTrackers' => $statusTrackers,
-            'xaiInsights' => $xaiInsights,
             'canAccessSocialHub' => $canAccessSocialHub,
             'socialHubEligibleCount' => $socialHubEligibleCount,
             'socialHubPrimarySource' => $socialHubPrimarySource,
@@ -384,6 +345,9 @@ class CandidatePortalController extends Controller
             'portalNotifications' => $portalNotifications,
             'reverseFeedbackEligibility' => $reverseFeedbackEligibility,
             'hiredFlowApplications' => $hiredFlowApplications,
+            'cvTipOfDay' => $cvTips[$cvTipIndex] ?? null,
+            'cvTipNumber' => $cvTipIndex + 1,
+            'cvTipsCount' => $cvTipsCount,
         ];
     }
 
@@ -420,6 +384,359 @@ class CandidatePortalController extends Controller
         return redirect()
             ->route('candidate.account', ['company' => $company->slug])
             ->with('status', __('candidate_portal.security.password_updated'));
+    }
+
+    public function account(Request $request, Company $company): View|RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $locale = Str::lower((string) ($user->profile?->locale ?? config('app.locale', 'en')));
+
+        return view('candidate.account', [
+            'company' => $company,
+            'candidate' => $candidate,
+            'notificationPreferences' => $candidate->notificationPreferences(),
+            'currentLocale' => in_array($locale, ['en', 'fr'], true) ? $locale : 'en',
+        ]);
+    }
+
+    public function updateProfile(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('candidates', 'email')
+                    ->where('company_id', $candidate->company_id)
+                    ->ignore($candidate->id),
+            ],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'location' => ['nullable', 'string', 'max:255'],
+            'years_experience' => ['nullable', 'integer', 'min:0', 'max:60'],
+            'last_company' => ['nullable', 'string', 'max:255'],
+            'main_skills' => ['nullable', 'string', 'max:2000'],
+            'diploma_type' => ['nullable', 'string', 'max:100'],
+            'school_type' => ['nullable', Rule::in(['moroccan', 'foreign'])],
+            'school_name' => ['nullable', 'string', 'max:255'],
+            'school_country' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $candidate->forceFill([
+            'full_name' => trim((string) $validated['full_name']),
+            'email' => Str::lower(trim((string) $validated['email'])),
+            'phone' => $validated['phone'] ?? null,
+            'location' => $validated['location'] ?? null,
+            'years_experience' => $validated['years_experience'] ?? null,
+            'last_company' => $validated['last_company'] ?? null,
+            'main_skills' => $validated['main_skills'] ?? null,
+            'diploma_type' => $validated['diploma_type'] ?? null,
+            'school_type' => $validated['school_type'] ?? null,
+            'school_name' => $validated['school_name'] ?? null,
+            'school_country' => $validated['school_country'] ?? null,
+        ])->save();
+
+        return redirect()
+            ->route('candidate.account', ['company' => $company->slug])
+            ->with('status', __('candidate_portal.account.profile.updated'));
+    }
+
+    public function updateNotificationPreferences(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $validated = $request->validate([
+            'preferences' => ['nullable', 'array'],
+        ]);
+
+        $submitted = (array) ($validated['preferences'] ?? []);
+        $preferences = [];
+        foreach (array_keys(Candidate::defaultNotificationPreferences()) as $key) {
+            $preferences[$key] = array_key_exists($key, $submitted);
+        }
+
+        $candidate->forceFill([
+            'notification_preferences_json' => $preferences,
+        ])->save();
+
+        return redirect()
+            ->route('candidate.account', ['company' => $company->slug])
+            ->with('status', __('candidate_portal.account.notifications.updated'));
+    }
+
+    public function updateLocale(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        $validated = $request->validate([
+            'locale' => ['required', Rule::in(['en', 'fr'])],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $profile = $user->profile;
+        if ($profile === null) {
+            $profile = $user->profile()->make();
+            $profile->user_id = $user->id;
+        }
+
+        $profile->locale = $validated['locale'];
+        $profile->save();
+
+        session(['locale' => $validated['locale']]);
+        app()->setLocale((string) $validated['locale']);
+
+        return redirect()
+            ->route('candidate.account', ['company' => $company->slug])
+            ->with('status', __('candidate_portal.account.language.updated'));
+    }
+
+    public function deleteAccount(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+        ], [
+            'current_password.required' => __('candidate_portal.account.danger.errors.password_required'),
+        ]);
+
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        if (! Hash::check((string) $validated['current_password'], (string) $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => __('candidate_portal.account.danger.errors.password_invalid'),
+            ]);
+        }
+
+        $membership = CompanyMembership::query()
+            ->where('company_id', $company->id)
+            ->where('user_id', $user->id)
+            ->where('company_role', CompanyMembership::ROLE_CANDIDATE)
+            ->first();
+
+        if ($membership instanceof CompanyMembership) {
+            $membership->forceFill([
+                'membership_status' => CompanyMembership::STATUS_REVOKED,
+            ])->save();
+        }
+
+        $this->sensitiveEvents->record(
+            actionType: 'candidate.account_deletion_requested',
+            entityType: 'candidate',
+            entityId: (string) $candidate->id,
+            metadata: [
+                'company_id' => (string) $company->id,
+            ],
+            actor: $user
+        );
+
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login')->with('status', __('candidate_portal.account.danger.deleted'));
+    }
+
+    public function cv(Request $request, Company $company): View|RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $cvDocuments = CandidateDocument::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('candidate_id', $candidate->id)
+            ->where('document_type', CandidateDocument::TYPE_RESUME)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (CandidateDocument $document) => [
+                'document' => $document,
+                'url' => CandidateWorkspaceController::signedDocumentUrl($document),
+            ]);
+
+        $latestCv = CvParsingResult::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('candidate_id', $candidate->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        return view('candidate.cv', [
+            'company' => $company,
+            'candidate' => $candidate,
+            'cvDocuments' => $cvDocuments,
+            'hasCvData' => $latestCv instanceof CvParsingResult,
+            'cvProfileSummary' => (string) ($latestCv?->profile_summary ?? ''),
+            'cvTotalYearsExperience' => $latestCv?->total_years_experience,
+            'cvHardSkills' => $this->joinCvList($latestCv?->hard_skills_json),
+            'cvSoftSkills' => $this->joinCvList($latestCv?->soft_skills_json),
+            'cvToolsFrameworks' => $this->joinCvList($latestCv?->tools_frameworks_json),
+            'cvLanguages' => $this->joinCvList($latestCv?->languages_json),
+            'cvEducationEntries' => $this->normalizeCvEntries($latestCv?->education_entries_json, ['institution_name', 'degree_name', 'field_of_study', 'start_date', 'end_date']),
+            'cvExperienceEntries' => $this->normalizeCvEntries($latestCv?->experience_entries_json, ['job_title', 'company_name', 'start_date', 'end_date', 'description']),
+            'cvCertificationEntries' => $this->normalizeCvEntries($latestCv?->certifications_json, ['name', 'issuer', 'date']),
+        ]);
+    }
+
+    public function uploadCv(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+        ]);
+
+        $file = $request->file('file');
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+        $fileName = (string) Str::uuid().($extension !== '' ? '.'.$extension : '');
+        $filePath = $file->storeAs(
+            'private/candidates/cv/'.$company->id.'/'.$candidate->id,
+            $fileName,
+            'local'
+        );
+
+        $document = CandidateDocument::withoutGlobalScopes()->create([
+            'company_id' => (string) $company->id,
+            'candidate_id' => (string) $candidate->id,
+            'document_type' => CandidateDocument::TYPE_RESUME,
+            'file_url' => $filePath,
+            'original_filename' => (string) $file->getClientOriginalName(),
+            'mime_type' => (string) $file->getMimeType(),
+            'file_size_bytes' => (int) $file->getSize(),
+            'created_at' => now(),
+        ]);
+
+        $actor = $request->user();
+        $this->sensitiveEvents->record(
+            actionType: 'candidate.cv_uploaded',
+            entityType: 'candidate_document',
+            entityId: (string) $document->id,
+            metadata: [
+                'candidate_id' => (string) $candidate->id,
+            ],
+            actor: $actor instanceof User ? $actor : null
+        );
+
+        return redirect()
+            ->route('candidate.cv', ['company' => $company->slug])
+            ->with('status', __('candidate_portal.cv.upload.uploaded'));
+    }
+
+    public function updateCvData(Request $request, Company $company): RedirectResponse
+    {
+        $context = $this->resolveCandidateContext($request, $company);
+        if ($context instanceof RedirectResponse) {
+            return $context;
+        }
+
+        [$candidate] = $context;
+
+        $validated = $request->validate([
+            'profile_summary' => ['nullable', 'string', 'max:4000'],
+            'total_years_experience' => ['nullable', 'numeric', 'min:0', 'max:60'],
+            'hard_skills' => ['nullable', 'string', 'max:2000'],
+            'soft_skills' => ['nullable', 'string', 'max:2000'],
+            'tools_frameworks' => ['nullable', 'string', 'max:2000'],
+            'languages' => ['nullable', 'string', 'max:1000'],
+            'education' => ['nullable', 'array'],
+            'education.*.institution_name' => ['nullable', 'string', 'max:255'],
+            'education.*.degree_name' => ['nullable', 'string', 'max:255'],
+            'education.*.field_of_study' => ['nullable', 'string', 'max:255'],
+            'education.*.start_date' => ['nullable', 'string', 'max:20'],
+            'education.*.end_date' => ['nullable', 'string', 'max:20'],
+            'experience' => ['nullable', 'array'],
+            'experience.*.job_title' => ['nullable', 'string', 'max:255'],
+            'experience.*.company_name' => ['nullable', 'string', 'max:255'],
+            'experience.*.start_date' => ['nullable', 'string', 'max:20'],
+            'experience.*.end_date' => ['nullable', 'string', 'max:20'],
+            'experience.*.description' => ['nullable', 'string', 'max:2000'],
+            'certifications' => ['nullable', 'array'],
+            'certifications.*.name' => ['nullable', 'string', 'max:255'],
+            'certifications.*.issuer' => ['nullable', 'string', 'max:255'],
+            'certifications.*.date' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $cv = CvParsingResult::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('candidate_id', $candidate->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (! $cv instanceof CvParsingResult) {
+            $cv = new CvParsingResult();
+            $cv->company_id = (string) $company->id;
+            $cv->candidate_id = (string) $candidate->id;
+            $cv->parser_version = 'candidate_manual_edit';
+            $cv->parse_status = 'succeeded';
+        }
+
+        $profileSummary = trim((string) ($validated['profile_summary'] ?? ''));
+
+        $cv->profile_summary = $profileSummary !== '' ? $profileSummary : null;
+        $cv->total_years_experience = $validated['total_years_experience'] ?? null;
+        $cv->hard_skills_json = $this->splitCvList($validated['hard_skills'] ?? null);
+        $cv->soft_skills_json = $this->splitCvList($validated['soft_skills'] ?? null);
+        $cv->tools_frameworks_json = $this->splitCvList($validated['tools_frameworks'] ?? null);
+        $cv->languages_json = $this->splitCvList($validated['languages'] ?? null);
+        $cv->education_entries_json = $this->filterCvEntries($validated['education'] ?? [], ['institution_name', 'degree_name', 'field_of_study', 'start_date', 'end_date']);
+        $cv->experience_entries_json = $this->filterCvEntries($validated['experience'] ?? [], ['job_title', 'company_name', 'start_date', 'end_date', 'description']);
+        $cv->certifications_json = $this->filterCvEntries($validated['certifications'] ?? [], ['name', 'issuer', 'date']);
+        $cv->updated_at = now();
+        $cv->save();
+
+        $actor = $request->user();
+        $this->sensitiveEvents->record(
+            actionType: 'candidate.cv_data_updated',
+            entityType: 'cv_parsing_result',
+            entityId: (string) $cv->id,
+            metadata: [
+                'candidate_id' => (string) $candidate->id,
+            ],
+            actor: $actor instanceof User ? $actor : null
+        );
+
+        return redirect()
+            ->route('candidate.cv', ['company' => $company->slug])
+            ->with('status', __('candidate_portal.cv.data.updated'));
     }
 
     public function askGuide(Request $request, Company $company): JsonResponse
@@ -1061,9 +1378,59 @@ class CandidatePortalController extends Controller
         return [$candidate];
     }
 
+    private function joinCvList(mixed $values): string
+    {
+        return collect((array) ($values ?? []))
+            ->map(fn ($value) => trim((string) $value))
+            ->filter(fn ($value) => $value !== '')
+            ->implode(', ');
+    }
+
+    /**
+     * @param array<int, string> $keys
+     * @return array<int, array<string, string>>
+     */
+    private function normalizeCvEntries(mixed $entries, array $keys): array
+    {
+        return collect((array) ($entries ?? []))
+            ->filter(fn ($entry) => is_array($entry))
+            ->map(fn (array $entry) => collect($keys)->mapWithKeys(
+                fn (string $key) => [$key => trim((string) ($entry[$key] ?? ''))]
+            )->all())
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function splitCvList(?string $value): array
+    {
+        return collect(explode(',', (string) $value))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter(fn ($item) => $item !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<int, mixed> $entries
+     * @param array<int, string> $keys
+     * @return array<int, array<string, string>>
+     */
+    private function filterCvEntries(array $entries, array $keys): array
+    {
+        return collect($entries)
+            ->map(fn (mixed $entry) => collect($keys)->mapWithKeys(
+                fn (string $key) => [$key => trim((string) (is_array($entry) ? ($entry[$key] ?? '') : ''))]
+            )->all())
+            ->filter(fn (array $entry) => collect($entry)->contains(fn ($value) => $value !== ''))
+            ->values()
+            ->all();
+    }
+
     /**
      * @param Collection<int, Application> $applications
-     * @param Collection<string, string> $nextSteps
      * @return Collection<string, array{
      *   application_id: string,
      *   job_title: string,
@@ -1080,26 +1447,14 @@ class CandidatePortalController extends Controller
      *   }>
      * }>
      */
-    private function buildStatusTrackers(string $companyId, Collection $applications, Collection $nextSteps): Collection
+    private function buildStatusTrackers(Collection $applications): Collection
     {
         if ($applications->isEmpty()) {
             return collect();
         }
 
-        $applicationIds = $applications
-            ->pluck('id')
-            ->map(static fn ($id): string => (string) $id)
-            ->values()
-            ->all();
-
-        $latestAnalysisByApplication = $this->latestAnalysisRequestsByApplication(
-            companyId: $companyId,
-            applicationIds: $applicationIds
-        );
-
-        return $applications->mapWithKeys(function (Application $application) use ($nextSteps, $latestAnalysisByApplication): array {
+        return $applications->mapWithKeys(function (Application $application): array {
             $applicationId = (string) $application->id;
-            $nextStep = (string) $nextSteps->get($applicationId, __('candidate_portal.applications.next_step_default'));
             $updatedAt = $application->updated_at ?? $application->created_at ?? now();
 
             return [
@@ -1110,42 +1465,17 @@ class CandidatePortalController extends Controller
                     'status' => (string) $application->status,
                     'updated_at' => $updatedAt->toIso8601String(),
                     'updated_human' => $updatedAt->diffForHumans(),
-                    'steps' => $this->buildStatusStepsForApplication(
-                        application: $application,
-                        nextStep: $nextStep,
-                        latestAnalysisRequest: $latestAnalysisByApplication->get($applicationId)
-                    ),
+                    'steps' => $this->buildStatusStepsForApplication($application),
                 ],
             ];
         });
     }
 
     /**
-     * @param array<int, string> $applicationIds
-     * @return Collection<string, AiRequest>
-     */
-    private function latestAnalysisRequestsByApplication(string $companyId, array $applicationIds): Collection
-    {
-        if ($applicationIds === []) {
-            return collect();
-        }
-
-        return AiRequest::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->whereIn('request_type', ['candidate_analysis', 'async_video_unified_report'])
-            ->where(function ($query) use ($applicationIds): void {
-                foreach ($applicationIds as $applicationId) {
-                    $query->orWhere('request_payload->application_id', (string) $applicationId);
-                }
-            })
-            ->orderByDesc('created_at')
-            ->get(['id', 'status', 'request_type', 'request_payload', 'created_at'])
-            ->groupBy(static fn (AiRequest $request): string => (string) data_get($request->request_payload, 'application_id'))
-            ->map(static fn (Collection $items): ?AiRequest => $items->first())
-            ->filter(static fn ($request): bool => $request instanceof AiRequest);
-    }
-
-    /**
+     * Builds the 5-step candidate-facing tracker (submitted, screening, interview,
+     * offer, hired), kept in sync with the recruiter pipeline's current stage
+     * (Application::currentStage->stage_key) and the application status.
+     *
      * @return array<int, array{
      *   key: string,
      *   label: string,
@@ -1154,21 +1484,11 @@ class CandidatePortalController extends Controller
      *   detail: string
      * }>
      */
-    private function buildStatusStepsForApplication(
-        Application $application,
-        string $nextStep,
-        ?AiRequest $latestAnalysisRequest
-    ): array {
+    private function buildStatusStepsForApplication(Application $application): array
+    {
         $now = now();
         $interviews = $application->interviews ?? collect();
 
-        $hasInterviewScheduled = $interviews->contains(
-            static fn (Interview $interview): bool => in_array(
-                (string) $interview->status,
-                [Interview::STATUS_SCHEDULED, Interview::STATUS_COMPLETED],
-                true
-            )
-        );
         $hasInterviewCompleted = $interviews->contains(
             static fn (Interview $interview): bool => (string) $interview->status === Interview::STATUS_COMPLETED
         );
@@ -1192,46 +1512,6 @@ class CandidatePortalController extends Controller
                 && $interview->scheduled_start_at->isFuture();
         });
 
-        $analysisStatus = (string) ($latestAnalysisRequest?->status ?? '');
-        $analysisPending = in_array($analysisStatus, [AiRequest::STATUS_QUEUED, AiRequest::STATUS_RUNNING], true);
-
-        $summaryText = trim((string) ($application->scoring?->xai_summary ?? ''));
-        $hasScoringSummary = $summaryText !== '' && Str::lower($summaryText) !== 'not scored yet.';
-        $analysisCompleted = $hasScoringSummary || $analysisStatus === AiRequest::STATUS_SUCCEEDED;
-
-        $normalizedStatus = Str::lower(trim((string) $application->status));
-        $isRejected = in_array($normalizedStatus, [Application::STATUS_REJECTED, Application::STATUS_WITHDRAWN], true);
-        $isShortlisted = ! $isRejected && $this->isShortlistedApplication($application);
-        $hasFinalOutcome = $isRejected || $isShortlisted;
-
-        $outcomeLabel = $isRejected
-            ? __('candidate_portal.status_tracker.outcomes.rejected')
-            : ($isShortlisted
-                ? __('candidate_portal.status_tracker.outcomes.shortlisted')
-                : __('candidate_portal.status_tracker.outcomes.next_step'));
-
-        $currentStep = 'application_received';
-        if ($hasInterviewScheduled) {
-            $currentStep = 'interview_scheduled';
-        }
-        if ($interviewInProgress) {
-            $currentStep = 'interview_in_progress';
-        }
-        if ($analysisPending) {
-            $currentStep = 'under_analysis';
-        }
-        if ($hasFinalOutcome || ($analysisCompleted && ! $analysisPending && ! $interviewInProgress)) {
-            $currentStep = 'outcome';
-        }
-
-        $stepState = static function (string $key, bool $completed, string $currentStep): string {
-            if ($key === $currentStep) {
-                return 'current';
-            }
-
-            return $completed ? 'completed' : 'pending';
-        };
-
         $formatInterviewDate = static function (?Interview $interview): string {
             if (! $interview instanceof Interview || $interview->scheduled_start_at === null) {
                 return __('candidate_portal.applications.not_scheduled');
@@ -1242,243 +1522,88 @@ class CandidatePortalController extends Controller
                 ->format('Y-m-d H:i');
         };
 
-        return [
-            [
-                'key' => 'application_received',
-                'label' => __('candidate_portal.status_tracker.steps.application_received'),
-                'state' => $stepState('application_received', true, $currentStep),
-                'state_label' => __('candidate_portal.status_tracker.states.'.$stepState('application_received', true, $currentStep)),
-                'detail' => __('candidate_portal.status_tracker.details.application_received', [
-                    'date' => ($application->created_at ?? now())->format('Y-m-d'),
-                ]),
-            ],
-            [
-                'key' => 'interview_scheduled',
-                'label' => __('candidate_portal.status_tracker.steps.interview_scheduled'),
-                'state' => $stepState('interview_scheduled', $hasInterviewScheduled || $interviewInProgress || $hasInterviewCompleted, $currentStep),
-                'state_label' => __('candidate_portal.status_tracker.states.'.$stepState('interview_scheduled', $hasInterviewScheduled || $interviewInProgress || $hasInterviewCompleted, $currentStep)),
-                'detail' => $upcomingInterview instanceof Interview
-                    ? __('candidate_portal.status_tracker.details.interview_scheduled', [
-                        'date' => $formatInterviewDate($upcomingInterview),
-                    ])
-                    : ($hasInterviewCompleted
-                        ? __('candidate_portal.status_tracker.details.interview_completed')
-                        : __('candidate_portal.status_tracker.details.interview_pending')),
-            ],
-            [
-                'key' => 'interview_in_progress',
-                'label' => __('candidate_portal.status_tracker.steps.interview_in_progress'),
-                'state' => $stepState('interview_in_progress', $hasInterviewCompleted, $currentStep),
-                'state_label' => __('candidate_portal.status_tracker.states.'.$stepState('interview_in_progress', $hasInterviewCompleted, $currentStep)),
-                'detail' => $interviewInProgress
-                    ? __('candidate_portal.status_tracker.details.interview_in_progress')
-                    : ($hasInterviewCompleted
-                        ? __('candidate_portal.status_tracker.details.interview_finished')
-                        : __('candidate_portal.status_tracker.details.interview_waiting')),
-            ],
-            [
-                'key' => 'under_analysis',
-                'label' => __('candidate_portal.status_tracker.steps.under_analysis'),
-                'state' => $stepState('under_analysis', $analysisCompleted, $currentStep),
-                'state_label' => __('candidate_portal.status_tracker.states.'.$stepState('under_analysis', $analysisCompleted, $currentStep)),
-                'detail' => $analysisPending
-                    ? __('candidate_portal.status_tracker.details.analysis_running')
-                    : ($analysisCompleted
-                        ? __('candidate_portal.status_tracker.details.analysis_complete')
-                        : __('candidate_portal.status_tracker.details.analysis_not_started')),
-            ],
-            [
-                'key' => 'outcome',
-                'label' => __('candidate_portal.status_tracker.steps.outcome', ['outcome' => $outcomeLabel]),
-                'state' => $stepState('outcome', $hasFinalOutcome, $currentStep),
-                'state_label' => __('candidate_portal.status_tracker.states.'.$stepState('outcome', $hasFinalOutcome, $currentStep)),
-                'detail' => $isRejected
-                    ? __('candidate_portal.status_tracker.details.outcome_rejected')
-                    : ($isShortlisted
-                        ? __('candidate_portal.status_tracker.details.outcome_shortlisted')
-                        : __('candidate_portal.status_tracker.details.outcome_next_step', ['next_step' => $nextStep])),
-            ],
+        $normalizedStatus = Str::lower(trim((string) $application->status));
+        $isRejected = in_array($normalizedStatus, [Application::STATUS_REJECTED, Application::STATUS_WITHDRAWN], true);
+        $isHired = $this->isInHiredFlow($application);
+
+        $stageOrder = ['applied' => 0, 'screen' => 1, 'interview' => 2, 'offer' => 3];
+        $currentStageKey = (string) ($application->currentStage?->stage_key ?? 'applied');
+        $currentIndex = $isHired ? 4 : ($stageOrder[$currentStageKey] ?? 0);
+
+        $stateFor = static function (int $index) use ($currentIndex, $isRejected, $isHired): string {
+            if ($isHired) {
+                return 'completed';
+            }
+            if ($index < $currentIndex) {
+                return 'completed';
+            }
+            if ($index === $currentIndex) {
+                return $isRejected ? 'rejected' : 'current';
+            }
+
+            return 'pending';
+        };
+
+        $steps = [];
+
+        $state = $stateFor(0);
+        $steps[] = [
+            'key' => 'submitted',
+            'label' => __('candidate_portal.status_tracker.steps.submitted'),
+            'state' => $state,
+            'state_label' => __('candidate_portal.status_tracker.states.'.$state),
+            'detail' => __('candidate_portal.status_tracker.details.submitted', [
+                'date' => ($application->created_at ?? now())->format('Y-m-d'),
+            ]),
         ];
-    }
 
-    private function isShortlistedApplication(Application $application): bool
-    {
-        if ($this->isInHiredFlow($application)) {
-            return true;
-        }
+        $state = $stateFor(1);
+        $steps[] = [
+            'key' => 'screening',
+            'label' => __('candidate_portal.status_tracker.steps.screening'),
+            'state' => $state,
+            'state_label' => __('candidate_portal.status_tracker.states.'.$state),
+            'detail' => __('candidate_portal.status_tracker.details.screening.'.$state),
+        ];
 
-        $stageText = Str::lower(trim(implode(' ', [
-            (string) ($application->currentStage?->stage_key ?? ''),
-            (string) ($application->currentStage?->stage_label ?? ''),
-        ])));
+        $state = $stateFor(2);
+        $interviewDetail = match (true) {
+            $state === 'current' && $upcomingInterview instanceof Interview => __('candidate_portal.status_tracker.details.interview_scheduled', [
+                'date' => $formatInterviewDate($upcomingInterview),
+            ]),
+            $state === 'current' && $interviewInProgress => __('candidate_portal.status_tracker.details.interview_in_progress'),
+            $state === 'completed' && $hasInterviewCompleted => __('candidate_portal.status_tracker.details.interview_completed'),
+            default => __('candidate_portal.status_tracker.details.interview.'.$state),
+        };
+        $steps[] = [
+            'key' => 'interview',
+            'label' => __('candidate_portal.status_tracker.steps.interview'),
+            'state' => $state,
+            'state_label' => __('candidate_portal.status_tracker.states.'.$state),
+            'detail' => $interviewDetail,
+        ];
 
-        return Str::contains($stageText, [
-            'shortlist',
-            'shortlisted',
-            'offer',
-            'hired',
-            'high_priority',
-            'high-priority',
-            'top10',
-            'top_10',
-            'finalist',
-        ]);
-    }
+        $state = $stateFor(3);
+        $steps[] = [
+            'key' => 'offer',
+            'label' => __('candidate_portal.status_tracker.steps.offer'),
+            'state' => $state,
+            'state_label' => __('candidate_portal.status_tracker.states.'.$state),
+            'detail' => __('candidate_portal.status_tracker.details.offer.'.$state),
+        ];
 
-    /**
-     * @param Collection<int, Application> $applications
-     * @return Collection<string, array{
-     *   score: ?float,
-     *   summary: string,
-     *   reasons: array<int, string>,
-     *   updated_at: string,
-     *   updated_human: string
-     * }>
-     */
-    private function buildXaiInsights(Collection $applications): Collection
-    {
-        if ($applications->isEmpty()) {
-            return collect();
-        }
+        $state = $stateFor(4);
+        $steps[] = [
+            'key' => 'hired',
+            'label' => __('candidate_portal.status_tracker.steps.hired'),
+            'state' => $state,
+            'state_label' => __('candidate_portal.status_tracker.states.'.$state),
+            'detail' => $isHired
+                ? __('candidate_portal.status_tracker.details.hired.completed')
+                : __('candidate_portal.status_tracker.details.hired.pending'),
+        ];
 
-        return $applications->mapWithKeys(function (Application $application): array {
-            $applicationId = (string) $application->id;
-            $scoring = $application->scoring;
-            $report = $application->unifiedInterviewReport;
-
-            $summary = trim((string) ($scoring?->xai_summary ?? $report?->xai_summary ?? ''));
-            if ($summary === '' || Str::lower($summary) === 'not scored yet.') {
-                $summary = __('candidate_portal.xai.pending_summary');
-            }
-
-            $score = null;
-            if (is_numeric($scoring?->global_match_score)) {
-                $score = round((float) $scoring->global_match_score, 1);
-            }
-
-            $sjtResponses = $application->relationLoaded('sjtResponses')
-                ? $application->sjtResponses
-                : $application->sjtResponses()
-                    ->get(['id', 'application_id', 'ai_score', 'ai_feedback_json', 'updated_at']);
-            $scoredSjtResponses = $sjtResponses->filter(
-                static fn (SjtResponse $response): bool => is_numeric($response->ai_score)
-            );
-            $averageSjtScore = $scoredSjtResponses->isNotEmpty()
-                ? round((float) $scoredSjtResponses->avg(
-                    static fn (SjtResponse $response): float => (float) $response->ai_score
-                ), 1)
-                : null;
-
-            if (! is_numeric($score) && is_numeric($averageSjtScore)) {
-                $score = (float) $averageSjtScore;
-            }
-
-            $analysisStatus = (string) ($scoring?->analysis_status ?? CandidateAnalysisService::ANALYSIS_PENDING);
-            $sourceStatuses = is_array($scoring?->source_status_json ?? null)
-                ? $scoring->source_status_json
-                : [];
-            $cvSourceStatus = (string) data_get($sourceStatuses, 'cv', 'pending_input');
-
-            $vrin = (array) ($scoring?->vrin_json ?? []);
-            $acquired = collect((array) data_get($vrin, 'acquired_skills', []))
-                ->map(static fn ($value): string => trim((string) $value))
-                ->filter(static fn (string $value): bool => $value !== '')
-                ->values();
-            $missing = collect((array) data_get($vrin, 'missing_skills', []))
-                ->map(static fn ($value): string => trim((string) $value))
-                ->filter(static fn (string $value): bool => $value !== '')
-                ->values();
-
-            $reasons = collect();
-            $latestSjtResponse = $scoredSjtResponses
-                ->sortByDesc(static fn (SjtResponse $response): int => $response->updated_at?->timestamp ?? 0)
-                ->first();
-
-            if ($analysisStatus === CandidateAnalysisService::ANALYSIS_INVALID_CV) {
-                $reasons->push(__('candidate_portal.xai.reasons.invalid_cv'));
-            } else {
-                if ($missing->isNotEmpty()) {
-                    $reasons->push(__('candidate_portal.xai.reasons.missing_skills', [
-                        'skills' => $missing->take(2)->implode(', '),
-                    ]));
-                }
-                if ($acquired->isNotEmpty()) {
-                    $reasons->push(__('candidate_portal.xai.reasons.acquired_skills', [
-                        'skills' => $acquired->take(2)->implode(', '),
-                    ]));
-                }
-
-                if ($latestSjtResponse instanceof SjtResponse) {
-                    $normalizeSignal = static function (mixed $value): string {
-                        $normalized = Str::lower(trim((string) $value));
-                        return in_array($normalized, ['high', 'medium', 'low'], true) ? $normalized : 'medium';
-                    };
-
-                    $signalLabel = static fn (string $signal): string => match ($signal) {
-                        'high' => 'strong',
-                        'low' => 'needs reinforcement',
-                        default => 'balanced',
-                    };
-
-                    $reasons->push(__('candidate_portal.xai.reasons.sjt_signal', [
-                        'accountability' => $signalLabel($normalizeSignal(data_get($latestSjtResponse->ai_feedback_json, 'signals.accountability'))),
-                        'solution' => $signalLabel($normalizeSignal(data_get($latestSjtResponse->ai_feedback_json, 'signals.solution_orientation'))),
-                        'tone' => $signalLabel($normalizeSignal(data_get($latestSjtResponse->ai_feedback_json, 'signals.tone'))),
-                    ]));
-                }
-
-                if (is_numeric($score)) {
-                    if ((float) $score >= 75) {
-                        $reasons->push(__('candidate_portal.xai.reasons.alignment_high'));
-                    } elseif ((float) $score >= 55) {
-                        $reasons->push(__('candidate_portal.xai.reasons.alignment_medium'));
-                    } else {
-                        $reasons->push(__('candidate_portal.xai.reasons.alignment_low'));
-                    }
-                }
-
-                $communicationSignals = collect([
-                    is_numeric($report?->ocean_extraversion) ? (float) $report->ocean_extraversion : null,
-                    is_numeric($report?->ocean_agreeableness) ? (float) $report->ocean_agreeableness : null,
-                ])->filter(static fn ($value): bool => $value !== null);
-
-                if ($communicationSignals->count() >= 2) {
-                    $communicationAverage = (float) $communicationSignals->avg();
-                    if ($communicationAverage >= 65) {
-                        $reasons->push(__('candidate_portal.xai.reasons.communication_strong'));
-                    } elseif ($communicationAverage >= 45) {
-                        $reasons->push(__('candidate_portal.xai.reasons.communication_balanced'));
-                    }
-                }
-
-                if ($reasons->isEmpty()) {
-                    $reasons->push(__('candidate_portal.xai.reasons.pending'));
-                }
-            }
-
-            $updatedAt = collect([
-                $scoring?->updated_at,
-                $report?->updated_at,
-                $latestSjtResponse?->updated_at,
-                $application->updated_at,
-            ])->filter()->sortByDesc(
-                static fn ($value): int => $value?->timestamp ?? 0
-            )->first() ?? now();
-
-            return [
-                $applicationId => [
-                    'score' => $score,
-                    'summary' => $summary,
-                    'reasons' => $reasons->take(3)->values()->all(),
-                    'analysis_status' => $analysisStatus,
-                    'analysis_status_label' => CandidateAnalysisService::analysisStatusLabel($analysisStatus),
-                    'cv_source_status' => $cvSourceStatus,
-                    'cv_source_status_label' => CandidateAnalysisService::sourceStatusLabel($cvSourceStatus, 'cv'),
-                    'updated_at' => $updatedAt->toIso8601String(),
-                    'updated_human' => $updatedAt->diffForHumans(),
-                ],
-            ];
-        });
+        return $steps;
     }
 
     /**
@@ -1843,9 +1968,127 @@ class CandidatePortalController extends Controller
     }
 
     /**
+     * @return array<int, string>
+     */
+    private function resolveCandidateSkillKeywords(Candidate $candidate): array
+    {
+        $keywords = collect(explode(',', (string) $candidate->main_skills));
+
+        $latestCv = CvParsingResult::withoutGlobalScopes()
+            ->where('company_id', $candidate->company_id)
+            ->where('candidate_id', $candidate->id)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($latestCv instanceof CvParsingResult) {
+            $keywords = $keywords
+                ->concat((array) ($latestCv->hard_skills_json ?? []))
+                ->concat((array) ($latestCv->tools_frameworks_json ?? []))
+                ->concat((array) ($latestCv->soft_skills_json ?? []));
+        }
+
+        return $keywords
+            ->map(fn ($keyword) => Str::lower(trim((string) $keyword)))
+            ->filter(fn (string $keyword) => mb_strlen($keyword) >= 3)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param Collection<int, Job> $openJobs
+     * @param array<int, string> $appliedJobIds
+     * @param array<int, string> $skillKeywords
+     * @return Collection<int, Job>
+     */
+    private function findMatchingOpenJobs(Collection $openJobs, array $appliedJobIds, array $skillKeywords): Collection
+    {
+        if ($skillKeywords === []) {
+            return collect();
+        }
+
+        $recentThreshold = now()->subDays(14);
+
+        return $openJobs
+            ->filter(function (Job $job) use ($appliedJobIds, $skillKeywords, $recentThreshold): bool {
+                if (in_array((string) $job->id, $appliedJobIds, true)) {
+                    return false;
+                }
+
+                if (! $job->created_at instanceof \Illuminate\Support\Carbon || $job->created_at->lessThan($recentThreshold)) {
+                    return false;
+                }
+
+                $haystack = Str::lower(strip_tags((string) $job->title.' '.(string) $job->description_html));
+
+                foreach ($skillKeywords as $keyword) {
+                    if (str_contains($haystack, $keyword)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
+            ->values()
+            ->take(3);
+    }
+
+    /**
+     * @param Collection<int, Application> $applications
+     * @return Collection<int, array{id: string, type: string, title: string, message: string, created_at: \Illuminate\Support\Carbon}>
+     */
+    private function buildInterviewReminderItems(Collection $applications): Collection
+    {
+        $now = now();
+        $reminderWindowEnd = $now->copy()->addHours(48);
+
+        return $applications
+            ->flatMap(function (Application $application) use ($now, $reminderWindowEnd): array {
+                $jobTitle = (string) ($application->job?->title ?? __('sjt.messages.unknown_job'));
+
+                return $application->interviews
+                    ->filter(fn (Interview $interview): bool => $interview->status === Interview::STATUS_SCHEDULED
+                        && $interview->scheduled_start_at !== null
+                        && $interview->scheduled_start_at->greaterThan($now)
+                        && $interview->scheduled_start_at->lessThanOrEqualTo($reminderWindowEnd))
+                    ->map(fn (Interview $interview): array => [
+                        'id' => 'interview-reminder-'.(string) $interview->id,
+                        'type' => 'interview_reminder',
+                        'title' => __('candidate_portal.notifications.event_labels.interview_reminder'),
+                        'message' => __('candidate_portal.notifications.event_messages.interview_reminder', [
+                            'job' => $jobTitle,
+                            'date' => $interview->scheduled_start_at->translatedFormat('d/m/Y H:i'),
+                        ]),
+                        'created_at' => now(),
+                    ])
+                    ->values()
+                    ->all();
+            })
+            ->values();
+    }
+
+    /**
+     * @param Collection<int, Job> $matchingJobs
+     * @return Collection<int, array{id: string, type: string, title: string, message: string, created_at: \Illuminate\Support\Carbon}>
+     */
+    private function buildJobMatchItems(Collection $matchingJobs): Collection
+    {
+        return $matchingJobs
+            ->map(fn (Job $job): array => [
+                'id' => 'job-match-'.(string) $job->id,
+                'type' => 'job_match',
+                'title' => __('candidate_portal.notifications.event_labels.job_match'),
+                'message' => __('candidate_portal.notifications.event_messages.job_match', ['job' => (string) $job->title]),
+                'created_at' => $job->created_at ?? now(),
+            ])
+            ->values();
+    }
+
+    /**
      * @param Collection<int, Application> $applications
      * @param Collection<int, array{application: Application,total: int,answered: int,percent: int,next_question_id: string,latest_unified_request: ?AiRequest}> $videoAssessments
      * @param Collection<int, array{application: Application,total: int,answered: int,scored: int,percent: int,status: string}> $sjtAssessments
+     * @param Collection<int, Job> $matchingJobs
      * @return Collection<int, array{id: string, type: string, title: string, message: string, created_at: \Illuminate\Support\Carbon}>
      */
     private function buildPortalNotifications(
@@ -1853,7 +2096,8 @@ class CandidatePortalController extends Controller
         Collection $applications,
         Collection $videoAssessments,
         Collection $sjtAssessments,
-        bool $canAccessSocialHub
+        bool $canAccessSocialHub,
+        Collection $matchingJobs
     ): Collection {
         if ($applications->isEmpty()) {
             return collect();
@@ -2014,6 +2258,8 @@ class CandidatePortalController extends Controller
         return $activityItems
             ->concat($strategyUnlockedItems)
             ->concat($assessmentItems)
+            ->concat($this->buildInterviewReminderItems($applications))
+            ->concat($this->buildJobMatchItems($matchingJobs))
             ->sortByDesc(static fn (array $item) => $item['created_at'])
             ->take(12)
             ->values();

@@ -181,9 +181,6 @@ class CandidateWorkspaceController extends Controller
         }
 
         $selectedApplicationId = (string) ($filters['application_id'] ?? '');
-        if ($selectedApplicationId === '' && $applications->count() > 0) {
-            $selectedApplicationId = (string) $applications->first()->id;
-        }
 
         $selectedApplication = null;
         $latestCvParsingRequest = null;
@@ -989,6 +986,18 @@ class CandidateWorkspaceController extends Controller
             'status' => $nextStatus,
         ]);
 
+        $jobPipelineStages = JobPipelineStage::withoutGlobalScopes()
+            ->where('job_id', $application->job_id)
+            ->orderBy('order', 'asc')
+            ->get();
+        $lastStageInJob = $jobPipelineStages->last();
+
+        if ($lastStageInJob && (string) $stage->id === (string) $lastStageInJob->id) {
+            \App\Models\Job::withoutGlobalScopes()
+                ->where('id', $application->job_id)
+                ->update(['status' => \App\Models\Job::STATUS_ARCHIVED]);
+        }
+
         ApplicationStageHistory::withoutGlobalScopes()->create([
             'company_id' => (string) $application->company_id,
             'application_id' => (string) $application->id,
@@ -1059,7 +1068,7 @@ class CandidateWorkspaceController extends Controller
         return Application::STATUS_ACTIVE;
     }
 
-    public function scheduleInterview(Request $request, Application $application): RedirectResponse
+    public function scheduleInterview(Request $request, Application $application): JsonResponse|RedirectResponse
     {
         [$actor] = $this->authorizeApplicationAction($request, $application);
 
@@ -1084,6 +1093,9 @@ class CandidateWorkspaceController extends Controller
         $allowPast = $request->boolean('admin_override_past')
             && ($actor->isSuperadmin() || $actor->hasRole(User::ROLE_COMPANY_ADMIN));
         if (! $allowPast && $startAt->isPast()) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => __('interviews.validation.past_not_allowed')], 422);
+            }
             return redirect()->route('candidates.index', $this->backQuery($request, $application))
                 ->with('error', __('interviews.validation.past_not_allowed'));
         }
@@ -1102,6 +1114,9 @@ class CandidateWorkspaceController extends Controller
             ->all();
 
         if ($allowedInterviewerIds === []) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => __('interviews.validation.interviewer_required')], 422);
+            }
             return redirect()->route('candidates.index', $this->backQuery($request, $application))
                 ->with('error', __('interviews.validation.interviewer_required'));
         }
@@ -1109,6 +1124,9 @@ class CandidateWorkspaceController extends Controller
         $locationType = (string) ($validated['location_type'] ?? Interview::LOCATION_ZOOM);
         $locationAddress = trim((string) ($validated['location_address'] ?? ''));
         if ($locationType === Interview::LOCATION_IN_PERSON && $locationAddress === '') {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => __('interviews.validation.location_address_required_in_person')], 422);
+            }
             return redirect()->route('candidates.index', $this->backQuery($request, $application))
                 ->with('error', __('interviews.validation.location_address_required_in_person'));
         }
@@ -1178,6 +1196,21 @@ class CandidateWorkspaceController extends Controller
             locationAddress: $locationAddress !== '' ? $locationAddress : null,
             actor: $actor
         );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => __('candidates.flash.interview_scheduled'),
+                'interview' => [
+                    'id' => $interview->id,
+                    'title' => 'Entretien avec ' . ($application->candidate?->full_name ?? 'Candidat'),
+                    'start' => $interview->scheduled_start_at->toIso8601String(),
+                    'end' => $interview->scheduled_end_at->toIso8601String(),
+                    'url' => route('interviews.show', ['interview' => $interview->id, 'company_id' => $companyId]),
+                    'meeting_link' => $interview->meeting_link
+                ]
+            ]);
+        }
 
         $redirect = redirect()->route('candidates.index', $this->backQuery($request, $application))
             ->with('status', __('candidates.flash.interview_scheduled'));
@@ -1664,7 +1697,12 @@ class CandidateWorkspaceController extends Controller
 
         $selectedJobId = (string) ($validated['job_id'] ?? '');
         if ($selectedJobId === '' && $jobs->isNotEmpty()) {
-            $selectedJobId = (string) $jobs->first()->id;
+            $latestApp = \App\Models\Application::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->where('status', \App\Models\Application::STATUS_ACTIVE)
+                ->latest('updated_at')
+                ->first();
+            $selectedJobId = $latestApp ? (string) $latestApp->job_id : (string) $jobs->first()->id;
         }
 
         $selectedJob = $jobs->firstWhere('id', $selectedJobId);
@@ -2065,6 +2103,18 @@ class CandidateWorkspaceController extends Controller
             }
 
             $application->update(['current_stage_id' => $toStage->id]);
+
+            $jobPipelineStages = JobPipelineStage::withoutGlobalScopes()
+                ->where('job_id', $application->job_id)
+                ->orderBy('display_order', 'asc')
+                ->get();
+            $lastStageInJob = $jobPipelineStages->last();
+
+            if ($lastStageInJob && (string) $toStage->id === (string) $lastStageInJob->id) {
+                \App\Models\Job::withoutGlobalScopes()
+                    ->where('id', $application->job_id)
+                    ->update(['status' => \App\Models\Job::STATUS_ARCHIVED]);
+            }
 
             ApplicationStageHistory::withoutGlobalScopes()->create([
                 'company_id' => $companyId,
@@ -2544,3 +2594,4 @@ class CandidateWorkspaceController extends Controller
         );
     }
 }
+

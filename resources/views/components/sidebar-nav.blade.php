@@ -5,11 +5,10 @@
     'x-bind:style' => 'leftSidebarWidthStyle()',
 ]) }}>
     <div class="flex h-full w-full flex-col rounded-3xl border border-white/80 bg-white/75 shadow-[0_24px_70px_-36px_rgba(76,29,149,0.55)] backdrop-blur-2xl">
-        <div class="shrink-0 border-b border-slate-200/80 px-6 py-6 transition-all duration-300" x-bind:class="leftSidebarCollapsed ? 'px-3 py-4' : 'px-6 py-6'">
+        <div class="shrink-0 border-b border-slate-200/80 px-6 py-6 transition-all duration-300 flex items-center justify-center" x-bind:class="leftSidebarCollapsed ? 'px-3 py-4' : 'px-6 py-6'">
             <a
                 href="{{ route('auth.company.dispatch') }}"
-                class="inline-flex items-center rounded-2xl border border-slate-200/70 bg-white/85 px-3 py-2 transition-weightless hover:bg-white"
-                x-bind:class="leftSidebarCollapsed ? 'w-full justify-center px-2' : ''"
+                class="inline-flex items-center justify-center transition-weightless w-full"
                 aria-label="numa portal home"
             >
                 <img
@@ -17,6 +16,7 @@
                     alt="{{ config('app.name') }} logo"
                     class="h-10 w-auto object-contain transition-all duration-300"
                     x-bind:class="leftSidebarCollapsed ? 'h-8' : 'h-10'"
+                    style="height: 40px; width: auto;"
                     loading="eager"
                     decoding="async"
                 >
@@ -57,6 +57,10 @@
                 'candidate.onboarding-tasks.*',
                 'candidate.strategy-lab.*',
             ];
+            $candidateCvRoutePatterns = [
+                'candidate.cv',
+                'candidate.cv.*',
+            ];
             $candidateUpdatesRoutePatterns = [
                 'candidate.updates',
             ];
@@ -66,23 +70,26 @@
             $candidateSocialRoutePatterns = [
                 'candidate.social-hub.*',
             ];
-            $candidateAccountRoutePatterns = [
-                'candidate.account',
-            ];
             $candidateAssessmentsRoutePatterns = [
                 'candidate.assessments.*',
                 'candidate.video-stories*',
             ];
+            $candidateAccountRoutePatterns = [
+                'candidate.account',
+                'candidate.profile.*',
+                'candidate.notification-preferences.*',
+                'candidate.locale.*',
+                'candidate.account.*',
+            ];
         @endphp
 
         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 transition-all duration-300" x-bind:class="leftSidebarCollapsed ? 'px-2' : 'px-3'">
-            <nav class="space-y-1.5 text-sm">
+            <nav class="space-y-2.5">
                 @auth
                     @if(auth()->user()->isSuperadmin())
                         <x-ui.nav-link :href="route('platform.console')" :label="__('ui.nav.platform_console')" icon="platform_console" :active="request()->routeIs('platform.console')" collapsible />
                         <x-ui.nav-link :href="route('platform.company-approvals')" :label="__('ui.nav.company_approvals')" icon="company_approvals" :active="request()->routeIs('platform.company-approvals*')" collapsible />
                         <x-ui.nav-link :href="route('superadmin.contact-inquiries.index')" :label="__('ui.nav.contact_inquiries')" icon="contact_inquiries" :active="request()->routeIs('superadmin.contact-inquiries*')" collapsible />
-                        <x-ui.nav-link :href="route('platform.ai-diagnostics')" :label="__('ui.nav.ai_diagnostics')" icon="ai_diagnostics" :active="request()->routeIs('platform.ai-diagnostics*')" collapsible />
                     @else
                         @if($isCandidateRole)
                             @if($activeCompanySlug)
@@ -100,18 +107,12 @@
                                     :active="request()->routeIs(...$candidateApplicationsRoutePatterns)"
                                     collapsible
                                 />
+
                                 <x-ui.nav-link
-                                    :href="route('candidate.updates', ['company' => $activeCompanySlug])"
-                                    :label="__('ui.nav.candidate_updates')"
-                                    icon="contact_inquiries"
-                                    :active="request()->routeIs(...$candidateUpdatesRoutePatterns)"
-                                    collapsible
-                                />
-                                <x-ui.nav-link
-                                    :href="route('candidate.faq', ['company' => $activeCompanySlug])"
-                                    :label="__('ui.nav.faqs')"
-                                    icon="faqs"
-                                    :active="request()->routeIs(...$candidateFaqRoutePatterns)"
+                                    :href="route('candidate.cv', ['company' => $activeCompanySlug])"
+                                    :label="__('ui.nav.candidate_cv')"
+                                    icon="cv"
+                                    :active="request()->routeIs(...$candidateCvRoutePatterns)"
                                     collapsible
                                 />
                                 <x-ui.nav-link
@@ -119,6 +120,13 @@
                                     :label="__('ui.nav.social_hub')"
                                     icon="social_hub"
                                     :active="request()->routeIs(...$candidateSocialRoutePatterns)"
+                                    collapsible
+                                />
+                                <x-ui.nav-link
+                                    :href="route('candidate.account', ['company' => $activeCompanySlug])"
+                                    :label="__('ui.nav.profile')"
+                                    icon="profile"
+                                    :active="request()->routeIs(...$candidateAccountRoutePatterns)"
                                     collapsible
                                 />
                             @endif
@@ -133,10 +141,10 @@
                             @endif
                             @if($activeCompanySlug)
                                 <x-ui.nav-link
-                                    :href="route('candidate.account', ['company' => $activeCompanySlug])"
-                                    :label="__('ui.nav.candidate_account')"
-                                    icon="profile"
-                                    :active="request()->routeIs(...$candidateAccountRoutePatterns)"
+                                    :href="route('candidate.faq', ['company' => $activeCompanySlug])"
+                                    :label="__('ui.nav.faqs')"
+                                    icon="faqs"
+                                    :active="request()->routeIs(...$candidateFaqRoutePatterns)"
                                     collapsible
                                 />
                             @endif
@@ -145,32 +153,18 @@
                             @can('access-admin-pages')
                                 <x-ui.nav-link :href="route('admin.recruitment-needs.index')" label="TB Recrutement" icon="company_approvals" :active="request()->routeIs('admin.recruitment-needs.*')" collapsible />
                                 <x-ui.nav-link :href="route('jobs.index')" :label="__('ui.nav.jobs')" icon="jobs" :active="request()->routeIs('jobs.*')" collapsible />
+                                <x-ui.nav-link :href="route('admin.psy-tests.index')" label="Tests psychologiques" icon="assessments" :active="request()->routeIs('admin.psy-tests.*')" collapsible />
+                                <x-ui.nav-link :href="route('admin.sjt-scenarios.index')" label="Tests techniques" icon="sjt_scenarios" :active="request()->routeIs('admin.sjt-scenarios.*')" collapsible />
                             @endcan
                             <x-ui.nav-link :href="route('candidates.index')" :label="__('ui.nav.candidates')" icon="candidates" :active="request()->routeIs('candidates.index')" collapsible />
                             <x-ui.nav-link :href="route('candidates.kanban')" :label="__('ui.nav.candidates_kanban')" icon="candidates_kanban" :active="request()->routeIs('candidates.kanban*')" collapsible />
                             <x-ui.nav-link :href="route('interviews.index')" :label="__('ui.nav.interviews')" icon="interviews" :active="request()->routeIs('interviews.*')" collapsible />
-                            <x-ui.nav-link :href="route('referrals.index')" :label="__('ui.nav.referrals')" icon="referrals" :active="request()->routeIs('referrals.*')" collapsible />
                             <x-ui.nav-link :href="route('social-hub.index')" :label="__('ui.nav.social_hub')" icon="social_hub" :active="request()->routeIs('social-hub.*', 'candidate.social-hub.*')" collapsible />
-                            <x-ui.nav-link :href="route('analytics.index')" :label="__('ui.nav.analytics')" icon="analytics" :active="request()->routeIs('analytics.index', 'analytics.alerts.*')" collapsible />
-                            <x-ui.nav-link :href="route('analytics.fairness')" :label="__('ui.nav.fairness')" icon="fairness" :active="request()->routeIs('analytics.fairness*')" collapsible />
-                            <x-ui.nav-link :href="route('configuration.index')" :label="__('ui.nav.configuration')" icon="configuration" :active="request()->routeIs('configuration.*')" collapsible />
-                            @can('viewAny', \App\Models\User::class)
-                                <x-ui.nav-link :href="route('admin.users.index')" :label="__('ui.nav.user_management')" icon="user_management" :active="request()->routeIs('admin.users.*')" collapsible />
-                            @endcan
-                            @can('access-admin-pages')
-                                <x-ui.nav-link :href="route('admin.ai-diagnostics.index')" :label="__('ui.nav.ai_diagnostics')" icon="ai_diagnostics" :active="request()->routeIs('admin.ai-diagnostics.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.email-templates.index')" :label="__('ui.nav.communication_engine')" icon="communication_engine" :active="request()->routeIs('admin.email-templates.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.video-configs.index')" :label="__('ui.nav.video_configs')" icon="video_configs" :active="request()->routeIs('admin.video-configs.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.sjt-scenarios.index')" :label="__('ui.nav.sjt_scenarios')" icon="sjt_scenarios" :active="request()->routeIs('admin.sjt-scenarios.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.exports.index')" :label="__('ui.nav.exports_history')" icon="exports_history" :active="request()->routeIs('admin.exports.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.health.index')" :label="__('ui.nav.health_checklist')" icon="health_checklist" :active="request()->routeIs('admin.health.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.departments.index')" :label="__('ui.nav.departments')" icon="departments" :active="request()->routeIs('admin.departments.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.values.index')" :label="__('ui.nav.company_values')" icon="company_values" :active="request()->routeIs('admin.values.*')" collapsible />
-                                <x-ui.nav-link :href="route('admin.faqs.index')" :label="__('ui.nav.faqs')" icon="faqs" :active="request()->routeIs('admin.faqs.*')" collapsible />
-                            @endcan
                         @endif
                     @endif
-                    <x-ui.nav-link :href="route('profile.edit')" :label="__('ui.nav.profile')" icon="profile" :active="request()->routeIs('profile.*')" collapsible />
+                    @if(!$isCandidateRole)
+                        <x-ui.nav-link :href="route('profile.edit')" :label="__('ui.nav.profile')" icon="profile" :active="request()->routeIs('profile.*')" collapsible />
+                    @endif
                 @endauth
             </nav>
         </div>
@@ -187,7 +181,7 @@
             <div class="shrink-0 border-t border-slate-200/80 p-4 transition-all duration-300" x-bind:class="leftSidebarCollapsed ? 'p-2' : 'p-4'">
                 <div class="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/85 p-3 transition-all duration-300" x-bind:class="leftSidebarCollapsed ? 'justify-center p-2' : 'p-3'">
                     @if($avatarUrl)
-                        <img src="{{ $avatarUrl }}" alt="{{ $displayName }}" class="size-10 rounded-full object-cover">
+                        <img src="{{ $avatarUrl }}" alt="{{ $displayName }}" class="size-10 rounded-full object-cover" style="width: 40px; height: 40px;">
                     @else
                         <div class="flex size-10 items-center justify-center rounded-full bg-aura-100 text-sm font-semibold text-aura-800">{{ $initials }}</div>
                     @endif

@@ -23,11 +23,19 @@ return new class extends Migration
             $table->index(['company_id', 'created_at']);
         });
 
-        DB::statement("ALTER TABLE exports DROP CONSTRAINT IF EXISTS exports_format_check");
-        DB::statement("ALTER TABLE exports ADD CONSTRAINT exports_format_check CHECK (format IN ('csv','pdf'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE exports DROP CONSTRAINT IF EXISTS exports_format_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE exports ADD CONSTRAINT exports_format_check CHECK (format IN ('csv','pdf'))");
+        }
 
-        DB::statement("ALTER TABLE exports DROP CONSTRAINT IF EXISTS exports_status_check");
-        DB::statement("ALTER TABLE exports ADD CONSTRAINT exports_status_check CHECK (status IN ('queued','processing','completed','failed'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE exports DROP CONSTRAINT IF EXISTS exports_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE exports ADD CONSTRAINT exports_status_check CHECK (status IN ('queued','processing','completed','failed'))");
+        }
     }
 
     public function down(): void

@@ -29,7 +29,9 @@ return new class extends Migration
             $table->unique(['company_id', 'provider']);
         });
 
-        DB::statement("ALTER TABLE company_integrations ADD CONSTRAINT company_integrations_status_check CHECK (status IN ('disconnected', 'pending', 'connected', 'expired', 'error'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE company_integrations ADD CONSTRAINT company_integrations_status_check CHECK (status IN ('disconnected', 'pending', 'connected', 'expired', 'error'))");
+        }
     }
 
     public function down(): void

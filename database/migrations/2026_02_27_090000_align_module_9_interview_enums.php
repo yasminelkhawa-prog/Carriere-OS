@@ -16,8 +16,12 @@ return new class extends Migration
              END"
         );
 
-        DB::statement('ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_location_type_check');
-        DB::statement("ALTER TABLE interviews ADD CONSTRAINT interviews_location_type_check CHECK (location_type IN ('zoom','in_person','other'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_location_type_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE interviews ADD CONSTRAINT interviews_location_type_check CHECK (location_type IN ('zoom','in_person','other'))");
+        }
 
         DB::statement(
             "UPDATE interview_participants
@@ -27,8 +31,12 @@ return new class extends Migration
              END"
         );
 
-        DB::statement('ALTER TABLE interview_participants DROP CONSTRAINT IF EXISTS interview_participants_role_check');
-        DB::statement("ALTER TABLE interview_participants ADD CONSTRAINT interview_participants_role_check CHECK (participant_role IN ('interviewer','observer'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interview_participants DROP CONSTRAINT IF EXISTS interview_participants_role_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE interview_participants ADD CONSTRAINT interview_participants_role_check CHECK (participant_role IN ('interviewer','observer'))");
+        }
 
         DB::statement(
             "UPDATE interview_feedback
@@ -39,14 +47,24 @@ return new class extends Migration
              END"
         );
 
-        DB::statement('ALTER TABLE interview_feedback DROP CONSTRAINT IF EXISTS interview_feedback_recommendation_check');
-        DB::statement("ALTER TABLE interview_feedback ADD CONSTRAINT interview_feedback_recommendation_check CHECK (recommendation IN ('hire','hold','no'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interview_feedback DROP CONSTRAINT IF EXISTS interview_feedback_recommendation_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE interview_feedback ADD CONSTRAINT interview_feedback_recommendation_check CHECK (recommendation IN ('hire','hold','no'))");
+        }
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE interview_feedback DROP CONSTRAINT IF EXISTS interview_feedback_recommendation_check');
-        DB::statement('ALTER TABLE interview_participants DROP CONSTRAINT IF EXISTS interview_participants_role_check');
-        DB::statement('ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_location_type_check');
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interview_feedback DROP CONSTRAINT IF EXISTS interview_feedback_recommendation_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interview_participants DROP CONSTRAINT IF EXISTS interview_participants_role_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_location_type_check');
+        }
     }
 };

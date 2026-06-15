@@ -8,7 +8,6 @@
         <div class="pointer-events-none absolute -right-20 bottom-0 h-56 w-56 rounded-full bg-success-400/20 blur-3xl"></div>
         <div class="relative max-w-3xl">
             <p class="text-xs uppercase tracking-[0.26em] text-aura-700/85">{{ __('public_site.home.eyebrow') }}</p>
-            <p class="mt-2 text-xs font-medium uppercase tracking-[0.22em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
             <h1 class="mt-4 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">{{ __('public_site.home.title') }}</h1>
             <p class="mt-4 text-base leading-relaxed text-slate-700">{{ __('public_site.home.subtitle') }}</p>
 
@@ -23,7 +22,6 @@
 
             <div class="mt-8 rounded-2xl border border-white/75 bg-white/80 p-4">
                 <p class="text-xs uppercase tracking-[0.2em] text-aura-700/85">{{ __('public_site.home.entry_title') }}</p>
-                <p class="mt-1 text-sm text-slate-600">{{ __('public_site.home.entry_subtitle') }}</p>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <a href="{{ route('public.entry.company') }}" class="rounded-xl border border-aura-300/60 bg-aura-50/70 px-4 py-3 transition-weightless hover:bg-aura-100/80">
                         <p class="text-sm font-semibold text-aura-900">{{ __('public_site.nav.entry_company') }}</p>

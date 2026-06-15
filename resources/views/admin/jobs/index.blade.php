@@ -1,4 +1,39 @@
 <x-shell-layout :title="__('jobs.title').' | '.config('app.name')">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+    <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+    <style>
+        trix-toolbar [data-trix-button-group="file-tools"] { display: none; }
+        trix-editor { min-height: 100px !important; }
+        /* Prevent scrollbars on toolbar and make buttons smaller to fit on one line */
+        trix-toolbar { margin-bottom: 4px !important; }
+        trix-toolbar .trix-button-row { 
+            display: flex !important; 
+            flex-wrap: nowrap !important; 
+            overflow-x: auto !important; 
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+            width: 100%; 
+        }
+        trix-toolbar .trix-button-row::-webkit-scrollbar { display: none; }
+        trix-toolbar .trix-button-group { 
+            margin-bottom: 0 !important; 
+            margin-top: 0 !important; 
+            margin-right: 2px !important; 
+            display: flex !important; 
+            flex-wrap: nowrap !important; 
+            flex-shrink: 0 !important; 
+        }
+        trix-toolbar .trix-button { 
+            padding: 0 2px !important; 
+            height: 20px !important; 
+            min-width: 20px !important; 
+            font-size: 10px !important; 
+        }
+        trix-toolbar .trix-button::before { 
+            width: 12px !important; 
+            height: 12px !important; 
+        }
+    </style>
     @if($requiresCompanySelection)
         <div class="p-6">
             <x-empty-state :title="__('jobs.company')" :message="__('master.common.company_scope_required')" />
@@ -43,7 +78,10 @@
                             <span class="ml-auto text-xs font-semibold text-slate-400">{{ $activeJobsCount }}</span>
                         </a>
                         <a href="{{ route('jobs.index', ['status' => 'archived']) }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-weightless hover:bg-slate-50 hover:text-slate-900 @if($selectedStatus === 'archived') bg-slate-50 text-slate-900 @endif">
-                            ✅ Clôturés
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Clôturés
                             <span class="ml-auto text-xs font-semibold text-slate-400">{{ $closedJobsCount }}</span>
                         </a>
                     </div>
@@ -52,8 +90,8 @@
                     <div class="mt-2 space-y-1">
                         @foreach($departments as $dept)
                             <a href="{{ route('jobs.index', ['department_id' => $dept->id]) }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-weightless hover:bg-slate-50 hover:text-slate-900 @if((string)$selectedDepartmentId === (string)$dept->id) bg-slate-50 text-slate-900 @endif">
-                                🏢 {{ $dept->name }}
-                                <span class="ml-auto rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{{ $dept->jobs_count }}</span>
+                                <span class="truncate flex-1">{{ $dept->name }}</span>
+                                <span class="flex-shrink-0 ml-auto rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{{ $dept->jobs_count }}</span>
                             </a>
                         @endforeach
                     </div>
@@ -103,17 +141,36 @@
                                         @endforeach
                                     </select>
                                 </x-form-field>
-
-                                <x-form-field label="Fiche de poste (Aperçu)" name="blocks[overview]" class="lg:col-span-2">
-                                    <textarea name="blocks[overview]" rows="2" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Décrivez le rôle..."></textarea>
+                                <x-form-field label="Famille de poste" name="job_family" class="lg:col-span-3">
+                                    <select name="job_family" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm" required>
+                                        <option value="">Sélectionnez une famille...</option>
+                                        @foreach(\App\Models\PsyTest::PROFILES as $profile)
+                                            <option value="{{ $profile }}">{{ ucfirst($profile) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <div class="mt-2 text-[11px] text-slate-500">
+                                        Utilisé pour déterminer le profil du test psycho (ex: ingenieur, management).
+                                    </div>
                                 </x-form-field>
 
-                                <x-form-field label="Missions" name="blocks[responsibilities]" class="lg:col-span-2">
-                                    <textarea name="blocks[responsibilities]" rows="2" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Missions principales..."></textarea>
+                                <x-form-field label="Fiche de poste (Aperçu)" name="blocks[overview]" class="lg:col-span-3">
+                                    <input id="blocks_overview" type="hidden" name="blocks[overview]">
+                                    <trix-editor input="blocks_overview" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Décrivez le rôle..."></trix-editor>
                                 </x-form-field>
 
-                                <x-form-field label="Compétences" name="blocks[requirements]" class="lg:col-span-2">
-                                    <textarea name="blocks[requirements]" rows="2" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Compétences requises..."></textarea>
+                                <x-form-field label="Missions" name="blocks[responsibilities]" class="lg:col-span-3">
+                                    <input id="blocks_responsibilities" type="hidden" name="blocks[responsibilities]">
+                                    <trix-editor input="blocks_responsibilities" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Missions principales..."></trix-editor>
+                                </x-form-field>
+
+                                <x-form-field label="Compétences" name="blocks[requirements]" class="lg:col-span-3">
+                                    <input id="blocks_requirements" type="hidden" name="blocks[requirements]">
+                                    <trix-editor input="blocks_requirements" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Compétences requises..."></trix-editor>
+                                </x-form-field>
+
+                                <x-form-field label="Rattachement hiérarchique" name="blocks[reporting_line]" class="lg:col-span-3">
+                                    <input id="blocks_reporting_line" type="hidden" name="blocks[reporting_line]">
+                                    <trix-editor input="blocks_reporting_line" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm" placeholder="Manager, Équipe..."></trix-editor>
                                 </x-form-field>
 
                                 <x-form-field :label="__('jobs.fields.location')" name="location" class="lg:col-span-3">
@@ -137,7 +194,7 @@
                     <div class="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-4">
                         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm border-t-2 border-t-slate-900">
                             <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Postes totaux</div>
-                            <div class="mt-1 text-2xl font-bold text-slate-800">{{ $totalNeedsCount }}</div>
+                            <div class="mt-1 text-2xl font-bold text-slate-800">{{ $totalJobsCount }}</div>
                         </div>
                         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm border-t-2 border-t-danger-500">
                             <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pas encore lancés</div>
@@ -185,9 +242,9 @@
                                 <div class="flex-1">
                                     <div class="font-bold text-slate-800">{{ $job->title }}</div>
                                     <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                                        @if($job->location) <span>📍 {{ $job->location }}</span> @endif
-                                        @if($job->department) <span>🏢 {{ $job->department->name }}</span> @endif
-                                        <span>📅 {{ $job->created_at->format('d M Y') }}</span>
+                                        @if($job->location) <span>{{ $job->location }}</span> @endif
+                                        @if($job->department) <span>{{ $job->department->name }}</span> @endif
+                                        <span>{{ $job->created_at->format('d M Y') }}</span>
                                     </div>
                                     <div class="mt-2 flex gap-2">
                                         <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold text-slate-600" :class="statusColor('{{ $job->status }}')">
@@ -206,7 +263,9 @@
                                 </div>
                                 <div class="ml-4 flex items-center gap-2">
                                     <a href="{{ route('jobs.show', ['job' => $job, 'company_id' => $selectedCompanyId]) }}" class="flex size-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition-weightless hover:bg-slate-50">
-                                        ✏️
+                                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
                                     </a>
                                 </div>
                             </div>
@@ -285,6 +344,30 @@
                                 </div>
                                 <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                                     <div class="h-full bg-success-500 transition-all duration-500" :style="`width: ${progress}%`"></div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4" x-show="selectedJob.hired_candidates && selectedJob.hired_candidates.length > 0">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Candidat(s) sélectionné(s) et embauché(s)</div>
+                                <div class="flex flex-col gap-2">
+                                    <template x-for="candidate in selectedJob.hired_candidates" :key="candidate.id">
+                                        <div class="flex flex-col gap-2 rounded-lg border border-success-200 bg-success-50 p-3">
+                                            <div class="flex items-center gap-3">
+                                                <div class="flex size-8 items-center justify-center rounded-full bg-success-100 text-success-600 font-bold text-xs uppercase" x-text="candidate.initials"></div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="text-sm font-bold text-slate-800 truncate" x-text="candidate.full_name"></div>
+                                                    <div class="text-[10px] text-slate-500 truncate" x-text="candidate.email"></div>
+                                                </div>
+                                                <a :href="`/candidates?application_id=${candidate.application_id}`" class="flex-shrink-0 text-[10px] font-bold text-success-600 hover:text-success-700 underline">Voir profil</a>
+                                            </div>
+                                            <div class="mt-1 border-t border-success-200/50 pt-2">
+                                                <ul class="list-disc list-inside space-y-1 text-xs text-slate-700">
+                                                    <li><strong>Rattachement hiérarchique :</strong> <span x-text="selectedJob.department ? selectedJob.department.name : 'Non défini'"></span></li>
+                                                    <li><strong>Embauche et Onboarding :</strong> Processus finalisé avec succès</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
 

@@ -47,9 +47,11 @@ class InterviewController extends Controller
                 'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
                 'jobs' => collect(),
                 'interviewers' => collect(),
+                'activeApplications' => collect(),
                 'selectedStatus' => null,
                 'selectedJobId' => null,
                 'selectedInterviewerUserId' => null,
+                'calendarEvents' => collect(),
             ]);
         }
 
@@ -73,6 +75,23 @@ class InterviewController extends Controller
             ->orderBy('email')
             ->get(['users.id', 'users.email']);
 
+        // Only candidates currently sitting in the interview ("Entretien") pipeline stage
+        // should be selectable when scheduling an interview.
+        $activeApplications = \App\Models\Application::withoutGlobalScopes()
+            ->with(['candidate', 'job'])
+            ->where('company_id', $companyId)
+            ->where('status', \App\Models\Application::STATUS_ACTIVE)
+            ->whereHas('currentStage', function ($stageQuery): void {
+                $stageQuery->where(function($q) {
+                    $q->where('stage_key', 'interview')
+                      ->orWhereRaw('LOWER(stage_label) LIKE ?', ['%entretien%'])
+                      ->orWhereRaw('LOWER(stage_label) LIKE ?', ['%interview%']);
+                });
+            })
+            ->orderByDesc('created_at')
+            ->limit(100)
+            ->get();
+
         $selectedStatus = $filters['status'] ?? null;
         $selectedJobId = $filters['job_id'] ?? null;
         $selectedInterviewerUserId = $filters['interviewer_user_id'] ?? null;
@@ -91,13 +110,44 @@ class InterviewController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $calendarEvents = Interview::withoutGlobalScopes()
+            ->with(['application.candidate', 'application.job'])
+            ->where('company_id', $companyId)
+            ->when($selectedStatus !== null, fn ($query) => $query->where('status', $selectedStatus))
+            ->when($selectedJobId !== null, function ($query) use ($selectedJobId): void {
+                $query->whereHas('application', fn ($applicationQuery) => $applicationQuery->where('job_id', $selectedJobId));
+            })
+            ->when($selectedInterviewerUserId !== null, function ($query) use ($selectedInterviewerUserId): void {
+                $query->whereHas('participants', fn ($participantQuery) => $participantQuery->where('user_id', $selectedInterviewerUserId));
+            })
+            ->get()
+            ->map(function ($interview) use ($companyId) {
+                return [
+                    'id' => $interview->id,
+                    'title' => ($interview->application?->candidate?->full_name ?? 'Candidat') . ' - ' . ($interview->application?->job?->title ?? 'Poste'),
+                    'start' => $interview->scheduled_start_at?->toIso8601String(),
+                    'end' => $interview->scheduled_end_at?->toIso8601String(),
+                    'url' => route('interviews.show', ['interview' => $interview->id, 'company_id' => $companyId]),
+                    'meeting_link' => $interview->meeting_link,
+                    'backgroundColor' => match($interview->status) {
+                        'scheduled' => '#3b82f6',
+                        'completed' => '#10b981',
+                        'canceled' => '#ef4444',
+                        default => '#6b7280',
+                    },
+                    'borderColor' => 'transparent',
+                ];
+            })->values();
+
         return view('interviews.index', [
             'requiresCompanySelection' => false,
             'interviews' => $interviews,
+            'calendarEvents' => $calendarEvents,
             'selectedCompanyId' => $companyId,
             'companies' => $actor->isSuperadmin() ? Company::query()->orderBy('name')->get(['id', 'name']) : collect(),
             'jobs' => $jobs,
             'interviewers' => $interviewers,
+            'activeApplications' => $activeApplications,
             'selectedStatus' => $selectedStatus,
             'selectedJobId' => $selectedJobId,
             'selectedInterviewerUserId' => $selectedInterviewerUserId,
@@ -329,3 +379,4 @@ class InterviewController extends Controller
         return $hasViewRole || $this->isAssignedInterviewer($interview, $actor);
     }
 }
+

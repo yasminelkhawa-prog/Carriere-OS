@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\JobMultipostingController;
 use App\Http\Controllers\Admin\SjtScenarioController;
 use App\Http\Controllers\Admin\ExportHistoryController;
 use App\Http\Controllers\Admin\HealthChecklistController;
+use App\Http\Controllers\Admin\AtsController;
 use App\Http\Controllers\Admin\VideoConfigController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\CandidateEmailVerificationLoginController;
@@ -117,10 +118,15 @@ Route::post('/careers/{company:slug}/jobs/{job}/apply', [CareerSiteController::c
     ->middleware('throttle:10,1')
     ->name('career.apply');
 Route::get('/careers/{company:slug}/jobs/{job}/confirmation', [CareerSiteController::class, 'confirmation'])->name('career.apply.confirmation');
+Route::post('/careers/{company:slug}/jobs/{job}/save-data', [CareerSiteController::class, 'saveApplicationData'])->name('career.apply.save-data');
 Route::get(
     '/candidate/email-verify/{user}/{company}/{application}',
     CandidateEmailVerificationLoginController::class
 )->middleware(['signed', 'throttle:6,1'])->name('candidate.email.verify-login');
+
+Route::get('/psy-test/{token}', [\App\Http\Controllers\PublicPsyTestController::class, 'show'])->name('public.psy-test.show');
+Route::post('/psy-test/{token}', [\App\Http\Controllers\PublicPsyTestController::class, 'submit'])->name('public.psy-test.submit');
+
 
 Route::get('/locale/{locale}', function (string $locale) {
     abort_unless(in_array($locale, ['en', 'fr'], true), 404);
@@ -159,7 +165,6 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/candidate/{company:slug}', [CandidatePortalController::class, 'show'])->name('candidate.portal');
     Route::get('/candidate/{company:slug}/applications', [CandidatePortalController::class, 'applications'])->name('candidate.applications');
     Route::get('/candidate/{company:slug}/updates', [CandidatePortalController::class, 'updates'])->name('candidate.updates');
-    Route::get('/candidate/{company:slug}/account', [CandidatePortalController::class, 'account'])->name('candidate.account');
     Route::get('/candidate/{company:slug}/status-tracker', [CandidatePortalController::class, 'statusTracker'])->name('candidate.status-tracker');
     Route::get('/candidate/{company:slug}/faq', [CandidatePortalController::class, 'faq'])->name('candidate.faq');
     Route::post('/candidate/{company:slug}/guide/ask', [CandidatePortalController::class, 'askGuide'])
@@ -168,6 +173,26 @@ Route::middleware('auth')->group(function (): void {
     Route::post('/candidate/{company:slug}/password', [CandidatePortalController::class, 'updatePassword'])
         ->middleware('throttle:10,1')
         ->name('candidate.password.update');
+    Route::get('/candidate/{company:slug}/account', [CandidatePortalController::class, 'account'])->name('candidate.account');
+    Route::post('/candidate/{company:slug}/account/profile', [CandidatePortalController::class, 'updateProfile'])
+        ->middleware('throttle:10,1')
+        ->name('candidate.profile.update');
+    Route::post('/candidate/{company:slug}/account/notification-preferences', [CandidatePortalController::class, 'updateNotificationPreferences'])
+        ->middleware('throttle:10,1')
+        ->name('candidate.notification-preferences.update');
+    Route::post('/candidate/{company:slug}/account/locale', [CandidatePortalController::class, 'updateLocale'])
+        ->middleware('throttle:10,1')
+        ->name('candidate.locale.update');
+    Route::post('/candidate/{company:slug}/account/delete', [CandidatePortalController::class, 'deleteAccount'])
+        ->middleware('throttle:5,1')
+        ->name('candidate.account.delete');
+    Route::get('/candidate/{company:slug}/cv', [CandidatePortalController::class, 'cv'])->name('candidate.cv');
+    Route::post('/candidate/{company:slug}/cv/upload', [CandidatePortalController::class, 'uploadCv'])
+        ->middleware('throttle:5,1')
+        ->name('candidate.cv.upload');
+    Route::post('/candidate/{company:slug}/cv/data', [CandidatePortalController::class, 'updateCvData'])
+        ->middleware('throttle:10,1')
+        ->name('candidate.cv.data.update');
     Route::post('/candidate/{company:slug}/applications/{application}/reverse-feedback', [CandidatePortalController::class, 'storeReverseFeedback'])
         ->middleware('throttle:10,1')
         ->name('candidate.reverse-feedback.store');
@@ -186,6 +211,8 @@ Route::middleware('auth')->group(function (): void {
         ->name('candidate.social-hub.reactions.store');
     Route::post('/candidate/{company:slug}/social-hub/posts/{post}/poll-vote', [SocialHubController::class, 'candidateStorePollVote'])
         ->name('candidate.social-hub.poll-votes.store');
+    Route::post('/candidate/{company:slug}/social-hub/posts/{post}/comments', [SocialHubController::class, 'candidateStoreComment'])
+        ->name('candidate.social-hub.comments.store');
 
     Route::get('/auth/company-dispatch', [CompanyContextController::class, 'dispatch'])->name('auth.company.dispatch');
     Route::get('/company-select', [CompanyContextController::class, 'select'])->name('company.select');
@@ -246,6 +273,7 @@ Route::middleware('auth')->group(function (): void {
             Route::post('/social-hub/posts', [SocialHubController::class, 'store'])->name('social-hub.posts.store');
             Route::post('/social-hub/posts/{post}/reactions', [SocialHubController::class, 'storeReaction'])->name('social-hub.reactions.store');
             Route::post('/social-hub/posts/{post}/poll-vote', [SocialHubController::class, 'storePollVote'])->name('social-hub.poll-votes.store');
+            Route::post('/social-hub/posts/{post}/comments', [SocialHubController::class, 'storeComment'])->name('social-hub.comments.store');
             Route::get('/analytics', [EmployerBrandController::class, 'index'])->name('analytics.index');
             Route::post('/analytics/alerts/{brandAlert}/resolve', [EmployerBrandController::class, 'resolveAlert'])->name('analytics.alerts.resolve');
             Route::get('/analytics/fairness', [FairnessDashboardController::class, 'index'])->name('analytics.fairness');
@@ -267,6 +295,7 @@ Route::middleware('auth')->group(function (): void {
         });
         Route::get('/exports/{export}/download', [ReportingExportController::class, 'download'])->name('exports.download');
         Route::middleware('can:access-admin-pages')->group(function (): void {
+            Route::post('/admin/chat', [App\Http\Controllers\Admin\ChatbotController::class, 'handleChat'])->name('admin.chat');
             Route::get('/admin/recruitment-needs', [App\Http\Controllers\Admin\RecruitmentNeedController::class, 'index'])->name('admin.recruitment-needs.index');
             Route::post('/admin/recruitment-needs/import', [App\Http\Controllers\Admin\RecruitmentNeedController::class, 'importCsv'])->name('admin.recruitment-needs.import');
             Route::put('/admin/recruitment-needs/{id}/inline', [App\Http\Controllers\Admin\RecruitmentNeedController::class, 'updateInline'])->name('admin.recruitment-needs.updateInline');
@@ -305,6 +334,22 @@ Route::middleware('auth')->group(function (): void {
             Route::get('/admin/health-checklist', [HealthChecklistController::class, 'index'])->name('admin.health.index');
             Route::post('/admin/health-checklist/retention', [HealthChecklistController::class, 'updateRetention'])->name('admin.health.retention.update');
             Route::post('/admin/health-checklist/retention/prune', [HealthChecklistController::class, 'runRetentionPrune'])->name('admin.health.retention.prune');
+
+            // ATS AI Routes
+            Route::prefix('/admin/ats')->name('ats.')->group(function (): void {
+                Route::get('/', [AtsController::class, 'index'])->name('dashboard');
+                Route::get('/jobs/{job}/upload-cv', [AtsController::class, 'uploadCvForm'])->name('upload-cv');
+                Route::post('/jobs/{job}/upload-cv', [AtsController::class, 'storeCv'])->name('store-cv');
+                Route::get('/jobs/{job}/candidates', [AtsController::class, 'candidates'])->name('candidates');
+                Route::get('/candidates/{application}', [AtsController::class, 'showCandidate'])->name('show-candidate');
+            });
+
+            // PsyTests routes
+            Route::prefix('/admin/psy-tests')->name('admin.psy-tests.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\PsyTestController::class, 'index'])->name('index');
+                Route::post('/generate', [\App\Http\Controllers\Admin\PsyTestController::class, 'generate'])->name('generate');
+                Route::get('/{psyTest}', [\App\Http\Controllers\Admin\PsyTestController::class, 'show'])->name('show');
+            });
         });
         Route::middleware('can:access-candidate-assessments')->group(function (): void {
             Route::get('/candidate/assessments/sjt', [CandidateAssessmentController::class, 'index'])->name('candidate.assessments.sjt');

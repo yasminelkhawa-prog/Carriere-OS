@@ -10,6 +10,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::disableForeignKeyConstraints();
+
         if (! Schema::hasColumn('companies', 'slug')) {
             Schema::table('companies', function (Blueprint $table): void {
                 $table->string('slug')->nullable()->after('name');
@@ -46,8 +48,10 @@ return new class extends Migration
             $table->unique('slug');
         });
 
-        DB::statement("ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_status_check");
-        DB::statement("ALTER TABLE companies ADD CONSTRAINT companies_status_check CHECK (status IN ('pending', 'active', 'rejected', 'suspended'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE companies DROP CONSTRAINT IF EXISTS companies_status_check");
+            DB::statement("ALTER TABLE companies ADD CONSTRAINT companies_status_check CHECK (status IN ('pending', 'active', 'rejected', 'suspended'))");
+        }
 
         if (! Schema::hasColumn('users', 'platform_role')) {
             Schema::table('users', function (Blueprint $table): void {
@@ -67,17 +71,28 @@ return new class extends Migration
         }
 
         if (Schema::hasColumn('users', 'company_id')) {
-            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_foreign');
             Schema::table('users', function (Blueprint $table): void {
+                if (DB::connection()->getDriverName() !== 'sqlite') {
+                    DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_foreign');
+                } else {
+                    $table->dropForeign(['company_id']);
+                    $table->dropIndex(['company_id']);
+                }
                 $table->dropColumn('company_id');
             });
         }
 
-        DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_platform_role_check");
-        DB::statement("ALTER TABLE users ADD CONSTRAINT users_platform_role_check CHECK (platform_role IN ('superadmin', 'none'))");
-
-        DB::statement("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_locale_check");
-        DB::statement("ALTER TABLE profiles ADD CONSTRAINT profiles_locale_check CHECK (locale IN ('en', 'fr'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_platform_role_check");
+            DB::statement("ALTER TABLE users ADD CONSTRAINT users_platform_role_check CHECK (platform_role IN ('superadmin', 'none'))");
+    
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_locale_check");
+            }
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE profiles ADD CONSTRAINT profiles_locale_check CHECK (locale IN ('en', 'fr'))");
+            }
+        }
 
         if (! Schema::hasColumn('company_memberships', 'company_role')) {
             Schema::table('company_memberships', function (Blueprint $table): void {
@@ -124,6 +139,9 @@ return new class extends Migration
 
         if (Schema::hasColumn('company_memberships', 'active')) {
             Schema::table('company_memberships', function (Blueprint $table): void {
+                if (DB::connection()->getDriverName() === 'sqlite') {
+                    $table->dropIndex('company_memberships_user_id_active_index');
+                }
                 $table->dropColumn('active');
             });
         }
@@ -135,10 +153,14 @@ return new class extends Migration
             $table->index('company_id');
         });
 
-        DB::statement("ALTER TABLE company_memberships DROP CONSTRAINT IF EXISTS company_memberships_company_role_check");
-        DB::statement("ALTER TABLE company_memberships ADD CONSTRAINT company_memberships_company_role_check CHECK (company_role IN ('company_admin', 'recruiter', 'manager', 'employee', 'candidate'))");
-        DB::statement("ALTER TABLE company_memberships DROP CONSTRAINT IF EXISTS company_memberships_membership_status_check");
-        DB::statement("ALTER TABLE company_memberships ADD CONSTRAINT company_memberships_membership_status_check CHECK (membership_status IN ('pending', 'active', 'revoked'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE company_memberships DROP CONSTRAINT IF EXISTS company_memberships_company_role_check");
+            DB::statement("ALTER TABLE company_memberships ADD CONSTRAINT company_memberships_company_role_check CHECK (company_role IN ('company_admin', 'recruiter', 'manager', 'employee', 'candidate'))");
+            DB::statement("ALTER TABLE company_memberships DROP CONSTRAINT IF EXISTS company_memberships_membership_status_check");
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE company_memberships ADD CONSTRAINT company_memberships_membership_status_check CHECK (membership_status IN ('pending', 'active', 'revoked'))");
+            }
+        }
 
         Schema::dropIfExists('audit_logs');
 
@@ -157,6 +179,8 @@ return new class extends Migration
             $table->index('created_at');
             $table->index(['entity_type', 'entity_id']);
         });
+
+        Schema::enableForeignKeyConstraints();
     }
 
     public function down(): void

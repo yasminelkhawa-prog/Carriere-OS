@@ -1,37 +1,43 @@
-
 <x-shell-layout :title="__('social_hub.index.title').' | '.config('app.name')">
     <style>
-        .social-hub-red {
-            background:
-                radial-gradient(circle at 10% -10%, rgba(239, 68, 68, 0.24), transparent 40%),
-                radial-gradient(circle at 90% 0%, rgba(248, 113, 113, 0.22), transparent 36%),
-                radial-gradient(circle at 80% 100%, rgba(220, 38, 38, 0.14), transparent 30%),
-                linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 1.25rem;
-            padding: 1rem;
+        .social-hub-container {
+            width: 100%;
+            padding: 0.5rem 0;
         }
 
-        .social-hub-red .social-hub-card {
-            background: rgba(255, 255, 255, 0.76);
-            border: 1px solid rgba(248, 113, 113, 0.34);
-            box-shadow: 0 16px 34px -26px rgba(220, 38, 38, 0.62);
-            backdrop-filter: blur(18px);
+        .social-hub-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
         }
 
-        .social-hub-red .select2-container .select2-selection--single,
-        .social-hub-red .select2-container .select2-selection--multiple {
-            border-color: rgba(248, 113, 113, 0.52) !important;
+        .tab-pill {
+            border-radius: 9999px;
+            padding: 0.375rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
         }
 
-        .social-hub-red .select2-dropdown {
-            border-color: rgba(239, 68, 68, 0.48) !important;
-            box-shadow: 0 16px 36px rgba(220, 38, 38, 0.22) !important;
+        .tab-pill-active {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
         }
 
-        .social-hub-red .select2-container--default.select2-container--focus .select2-selection--single,
-        .social-hub-red .select2-container--default.select2-container--focus .select2-selection--multiple {
-            border-color: rgba(220, 38, 38, 0.86) !important;
-            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.35) !important;
+        .tab-pill-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .tab-pill-inactive:hover {
+            background-color: #f8fafc;
+            color: #0f172a;
         }
     </style>
 
@@ -42,14 +48,21 @@
             : array_filter(['company_id' => request('company_id')]);
 
         $reactionRouteName = $isCandidatePortal ? 'candidate.social-hub.reactions.store' : 'social-hub.reactions.store';
-        $pollVoteRouteName = $isCandidatePortal ? 'candidate.social-hub.poll-votes.store' : 'social-hub.poll-votes.store';
 
-        $composerTypes = collect($allowedPostTypes ?? [])->reject(
-            static fn (string $postType): bool => $postType === \App\Models\SocialPost::TYPE_KUDOS
-        )->values();
+        $currentTab = request('tab');
+        $tabs = [
+            '' => 'Tous',
+            'welcome' => 'Bienvenue',
+            'announcement' => 'Annonce RH',
+            'event' => 'Événement',
+            'idea' => 'Conseil',
+            'job' => 'Job',
+            'kudos' => 'Félicitations',
+            'media' => 'Média',
+        ];
     @endphp
 
-    <section class="social-hub-red space-y-5">
+    <section class="social-hub-container">
         @if(session('status'))
             <x-toast-alert type="success">{{ session('status') }}</x-toast-alert>
         @endif
@@ -61,435 +74,258 @@
         @endif
 
         @if($requiresCompanySelection)
-            <x-glass-card class="social-hub-card">
+            <div class="social-hub-card p-5">
                 <x-empty-state :title="__('social_hub.company_required.title')" :message="__('social_hub.company_required.message')" />
-            </x-glass-card>
+            </div>
         @else
-            <x-glass-card class="social-hub-card p-5">
-                <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div class="max-w-2xl">
-                        <p class="text-xs uppercase tracking-[0.28em] text-danger-700">{{ __('social_hub.index.watercooler_label') }}</p>
-                        <h1 class="panel-title mt-1 text-3xl font-semibold tracking-tight text-slate-900">{{ __('social_hub.index.heading') }}</h1>
-                        <p class="mt-1 text-sm text-slate-700">{{ __('social_hub.index.subheading') }}</p>
-                    </div>
+            <div class="flex flex-wrap items-center justify-end gap-4 mb-3">
 
-                    @unless($isCandidatePortal)
-                        <div class="flex flex-wrap items-center gap-2">
-                            @if($canCompose && $composerTypes->isNotEmpty())
-                                <x-modal id="social-hub-composer-modal" :title="__('social_hub.composer.title')">
-                                    <x-slot:trigger>
-                                        <button type="button" class="rounded-xl bg-danger-600 px-4 py-2.5 text-sm font-semibold text-white transition-weightless hover:bg-danger-700">
-                                            {{ __('social_hub.composer.open') }}
+                @unless($isCandidatePortal)
+                    <div class="flex items-center gap-2">
+                        @if($canCompose)
+                            <x-modal id="social-hub-composer-modal" title="Créer un nouveau message de bienvenue">
+                                <x-slot:trigger>
+                                    <button type="button" class="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 transition-all">
+                                        + Nouveau
+                                    </button>
+                                </x-slot:trigger>
+
+                                <form method="POST" action="{{ route('social-hub.posts.store', array_filter(['company_id' => request('company_id')])) }}" enctype="multipart/form-data" class="space-y-4">
+                                    @csrf
+                                    @if(auth()->user()?->isSuperadmin() && request('company_id'))
+                                        <input type="hidden" name="company_id" value="{{ request('company_id') }}">
+                                    @endif
+
+                                    <x-form-field :label="__('social_hub.composer.visibility')" name="visibility" required>
+                                        <select name="visibility" required class="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
+                                            @foreach(\App\Models\SocialPost::visibilities() as $visibility)
+                                                <option value="{{ $visibility }}" @selected((string) old('visibility', \App\Models\SocialPost::VISIBILITY_TEAM_ONLY) === (string) $visibility)>
+                                                    {{ __('social_hub.visibilities.'.$visibility) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </x-form-field>
+
+                                    <x-form-field :label="__('social_hub.composer.content')" name="content_text" required>
+                                        <textarea name="content_text" rows="5" maxlength="{{ \App\Models\SocialPost::CONTENT_MAX_LENGTH }}" class="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm text-slate-900" placeholder="Présentez le nouveau collaborateur... (ex: Lilly\n\nNous sommes ravis d'accueillir...)">{{ old('content_text') }}</textarea>
+                                    </x-form-field>
+
+                                    <x-form-field label="Image (optionnelle)" name="media">
+                                        <input type="file" name="media" accept="image/*" class="w-full rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-50 file:text-slate-700 hover:file:bg-slate-100">
+                                    </x-form-field>
+
+                                    <div class="flex justify-end gap-2">
+                                        <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-slate-800">
+                                            Publier
                                         </button>
-                                    </x-slot:trigger>
-
-                                    <form method="POST" action="{{ route('social-hub.posts.store', array_filter(['company_id' => request('company_id')])) }}" class="space-y-4" x-data="{ type: '{{ old('type', $composerTypes->first() ?? '') }}', pollEnabled: {{ old('poll_enabled') ? 'true' : 'false' }} }">
-                                        @csrf
-                                        @if(auth()->user()?->isSuperadmin() && request('company_id'))
-                                            <input type="hidden" name="company_id" value="{{ request('company_id') }}">
-                                        @endif
-                                        <input type="hidden" name="mode" value="standard">
-
-                                        <x-form-field :label="__('social_hub.composer.post_type')" name="type" required>
-                                            <select x-model="type" name="type" required data-placeholder="{{ __('social_hub.composer.post_type_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                <option value="">{{ __('social_hub.composer.post_type_placeholder') }}</option>
-                                                @foreach($composerTypes as $postType)
-                                                    <option value="{{ $postType }}" @selected((string) old('type') === (string) $postType)>
-                                                        {{ __('social_hub.post_types.'.$postType) }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.composer.visibility')" name="visibility" required>
-                                            <select name="visibility" required data-placeholder="{{ __('social_hub.composer.visibility_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                @foreach(\App\Models\SocialPost::visibilities() as $visibility)
-                                                    <option value="{{ $visibility }}" @selected((string) old('visibility', \App\Models\SocialPost::VISIBILITY_TEAM_ONLY) === (string) $visibility)>
-                                                        {{ __('social_hub.visibilities.'.$visibility) }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.composer.content')" name="content_text" :help="__('social_hub.composer.content_hint', ['max' => \App\Models\SocialPost::CONTENT_MAX_LENGTH])" required>
-                                            <textarea name="content_text" rows="5" maxlength="{{ \App\Models\SocialPost::CONTENT_MAX_LENGTH }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900" placeholder="{{ __('social_hub.composer.content_placeholder') }}">{{ old('content_text') }}</textarea>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.composer.media_url')" name="media_url" :help="__('social_hub.composer.media_hint')">
-                                            <input type="url" name="media_url" value="{{ old('media_url') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900" placeholder="https://">
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.composer.related_job')" name="related_job_id" :help="__('social_hub.composer.related_job_hint')">
-                                            <select name="related_job_id" data-placeholder="{{ __('social_hub.composer.related_job_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                <option value="">{{ __('social_hub.composer.related_job_placeholder') }}</option>
-                                                @foreach($jobsForLinking as $linkableJob)
-                                                    <option value="{{ $linkableJob->id }}" @selected((string) old('related_job_id') === (string) $linkableJob->id)>{{ $linkableJob->title }}</option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <div class="rounded-xl border border-danger-200/60 bg-danger-50/65 p-3" x-show="type === '{{ \App\Models\SocialPost::TYPE_IDEA }}'">
-                                            <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-800">
-                                                <input type="checkbox" name="poll_enabled" value="1" x-model="pollEnabled" class="rounded border-danger-300 text-danger-600 focus:ring-danger-400">
-                                                <span>{{ __('social_hub.polls.enable_label') }}</span>
-                                            </label>
-
-                                            <div class="mt-2" x-show="pollEnabled">
-                                                <x-form-field :label="__('social_hub.polls.question')" name="poll_question_text">
-                                                    <input type="text" name="poll_question_text" maxlength="255" value="{{ old('poll_question_text') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900" placeholder="{{ __('social_hub.polls.question_placeholder') }}">
-                                                </x-form-field>
-                                            </div>
-                                        </div>
-
-                                        <div class="flex justify-end gap-2">
-                                            <button type="submit" class="rounded-xl bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-weightless hover:bg-danger-700">
-                                                {{ __('social_hub.composer.submit') }}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </x-modal>
-                            @endif
-
-                            @if($canSendKudos)
-                                <x-modal id="social-hub-kudos-modal" :title="__('social_hub.kudos.modal_title')">
-                                    <x-slot:trigger>
-                                        <button type="button" class="rounded-xl border border-danger-300/70 bg-white px-4 py-2.5 text-sm font-semibold text-danger-700 transition-weightless hover:bg-danger-50">
-                                            {{ __('social_hub.kudos.open') }}
-                                        </button>
-                                    </x-slot:trigger>
-
-                                    <form method="POST" action="{{ route('social-hub.posts.store', array_filter(['company_id' => request('company_id')])) }}" class="space-y-4">
-                                        @csrf
-                                        @if(auth()->user()?->isSuperadmin() && request('company_id'))
-                                            <input type="hidden" name="company_id" value="{{ request('company_id') }}">
-                                        @endif
-                                        <input type="hidden" name="mode" value="kudos">
-                                        <input type="hidden" name="type" value="{{ \App\Models\SocialPost::TYPE_KUDOS }}">
-
-                                        <x-form-field :label="__('social_hub.composer.visibility')" name="visibility" required>
-                                            <select name="visibility" required data-placeholder="{{ __('social_hub.composer.visibility_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                @foreach(\App\Models\SocialPost::visibilities() as $visibility)
-                                                    <option value="{{ $visibility }}" @selected((string) old('visibility', \App\Models\SocialPost::VISIBILITY_TEAM_ONLY) === (string) $visibility)>
-                                                        {{ __('social_hub.visibilities.'.$visibility) }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.kudos.recipient')" name="kudos_recipient_user_id" required>
-                                            <select name="kudos_recipient_user_id" required data-placeholder="{{ __('social_hub.kudos.recipient_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                <option value="">{{ __('social_hub.kudos.recipient_placeholder') }}</option>
-                                                @foreach($authors as $author)
-                                                    @continue((string) $author['id'] === (string) auth()->id())
-                                                    <option value="{{ $author['id'] }}" @selected((string) old('kudos_recipient_user_id') === (string) $author['id'])>{{ $author['name'] }}</option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.kudos.category')" name="kudos_category" required>
-                                            <select name="kudos_category" required data-placeholder="{{ __('social_hub.kudos.category_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900">
-                                                <option value="">{{ __('social_hub.kudos.category_placeholder') }}</option>
-                                                @foreach($kudosCategories as $categoryKey => $category)
-                                                    <option value="{{ $categoryKey }}" @selected((string) old('kudos_category') === (string) $categoryKey)>{{ $category['icon'] }} {{ $category['label'] }}</option>
-                                                @endforeach
-                                            </select>
-                                        </x-form-field>
-
-                                        <x-form-field :label="__('social_hub.kudos.message')" name="kudos_message" required>
-                                            <textarea name="kudos_message" rows="4" maxlength="{{ \App\Models\SocialPost::CONTENT_MAX_LENGTH }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2.5 text-sm text-slate-900" placeholder="{{ __('social_hub.kudos.message_placeholder') }}">{{ old('kudos_message') }}</textarea>
-                                        </x-form-field>
-
-                                        <div class="flex justify-end gap-2">
-                                            <button type="submit" class="rounded-xl bg-danger-600 px-4 py-2 text-sm font-semibold text-white transition-weightless hover:bg-danger-700">
-                                                {{ __('social_hub.kudos.submit') }}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </x-modal>
-                            @endif
-
-                            @if(! $canCompose && ! $canSendKudos)
-                                <p class="max-w-xs rounded-xl border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-800">
-                                    {{ __('social_hub.composer.no_permission') }}
-                                </p>
-                            @endif
-                        </div>
-                    @endunless
-                </div>
-            </x-glass-card>
-
-            <x-glass-card class="social-hub-card p-4">
-                <form method="GET" action="{{ route($indexRouteName, $isCandidatePortal ? ['company' => $company->slug] : []) }}" class="grid gap-3 md:grid-cols-4">
-                    @if(auth()->user()?->isSuperadmin() && ! $isCandidatePortal)
-                        <x-form-field :label="__('jobs.company')" name="company_id">
-                            <select name="company_id" data-placeholder="{{ __('jobs.company_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2 text-sm">
-                                <option value="">{{ __('jobs.company_placeholder') }}</option>
-                                @foreach($companies as $filterCompany)
-                                    <option value="{{ $filterCompany->id }}" @selected((string) request('company_id') === (string) $filterCompany->id)>{{ $filterCompany->name }}</option>
-                                @endforeach
-                            </select>
-                        </x-form-field>
-                    @endif
-
-                    <x-form-field :label="__('social_hub.filters.post_types')" name="post_types">
-                        <select name="post_types[]" multiple data-placeholder="{{ __('social_hub.filters.post_types_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2 text-sm">
-                            @foreach($postTypes as $postType)
-                                <option value="{{ $postType }}" @selected(in_array($postType, $filters['post_types'] ?? [], true))>
-                                    {{ __('social_hub.post_types.'.$postType) }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </x-form-field>
-
-                    <x-form-field :label="__('social_hub.filters.author')" name="author_user_id">
-                        <select name="author_user_id" data-placeholder="{{ __('social_hub.filters.author_placeholder') }}" class="w-full rounded-xl border border-danger-200/70 bg-white/90 px-3 py-2 text-sm">
-                            <option value="">{{ __('social_hub.filters.author_placeholder') }}</option>
-                            @foreach($authors as $author)
-                                <option value="{{ $author['id'] }}" @selected((string) ($filters['author_user_id'] ?? '') === (string) $author['id'])>{{ $author['name'] }}</option>
-                            @endforeach
-                        </select>
-                    </x-form-field>
-
-                    <div class="flex items-end gap-2">
-                        <button type="submit" class="rounded-xl bg-danger-600 px-4 py-2.5 text-sm font-semibold text-white transition-weightless hover:bg-danger-700">
-                            {{ __('social_hub.filters.apply') }}
-                        </button>
-                        <a href="{{ route($indexRouteName, $indexRouteParams) }}" class="rounded-xl border border-danger-300/70 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-weightless hover:bg-danger-50">
-                            {{ __('social_hub.filters.reset') }}
-                        </a>
+                                    </div>
+                                </form>
+                            </x-modal>
+                        @endif
                     </div>
-                </form>
-            </x-glass-card>
+                @endunless
+            </div>
 
-            @if(! empty($pulseSummary))
-                <x-glass-card class="social-hub-card p-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-danger-700">{{ __('social_hub.polls.pulse_heading') }}</h2>
-                    <p class="mt-1 text-xs text-slate-600">{{ __('social_hub.polls.pulse_subheading') }}</p>
-                    <div class="mt-3 grid gap-2 sm:grid-cols-3">
-                        @foreach($pulseSummary as $pulseItem)
-                            <div class="rounded-xl border border-danger-200/60 bg-white/85 px-3 py-2">
-                                <p class="text-xs uppercase tracking-[0.16em] text-danger-700">{{ __('social_hub.polls.options.'.$pulseItem['option_key']) }}</p>
-                                <p class="mt-1 text-xl font-semibold text-slate-900">{{ $pulseItem['count'] }}</p>
-                            </div>
-                        @endforeach
-                    </div>
-                </x-glass-card>
-            @endif
-
-            @if(! $isCandidatePortal && ! empty($kudosLeadershipInsights))
-                <x-glass-card class="social-hub-card p-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-danger-700">{{ __('social_hub.ai.kudos_title') }}</h2>
-                    <p class="mt-1 text-xs text-slate-600">{{ __('social_hub.ai.kudos_subheading') }}</p>
-                    <div class="mt-3 grid gap-3 lg:grid-cols-3">
-                        @foreach($kudosLeadershipInsights as $leader)
-                            <div class="rounded-xl border border-danger-200/70 bg-white/85 p-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <p class="text-sm font-semibold text-slate-900">{{ $leader['recipient_name'] }}</p>
-                                    <span class="rounded-full border border-danger-200 bg-danger-50 px-2 py-0.5 text-xs font-semibold text-danger-800">
-                                        {{ __('social_hub.ai.score_badge', ['score' => number_format((float) $leader['score'], 1)]) }}
-                                    </span>
-                                </div>
-                                <p class="mt-1 text-xs text-slate-600">
-                                    {{ __('social_hub.ai.kudos_count', ['count' => (int) $leader['kudos_count']]) }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-600">
-                                    {{ __('social_hub.ai.leading_signal', ['signal' => __('social_hub.kudos_categories.'.(string) $leader['dominant_category_key'])]) }}
-                                </p>
-                            </div>
-                        @endforeach
-                    </div>
-                </x-glass-card>
-            @endif
-
-            @if(! $isCandidatePortal && ! empty($internalMobilitySuggestions))
-                <x-glass-card class="social-hub-card p-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-danger-700">{{ __('social_hub.ai.mobility_title') }}</h2>
-                    <p class="mt-1 text-xs text-slate-600">{{ __('social_hub.ai.mobility_subheading') }}</p>
-                    <div class="mt-3 grid gap-3 lg:grid-cols-3">
-                        @foreach($internalMobilitySuggestions as $suggestion)
-                            <article class="rounded-xl border border-primary-200/70 bg-primary-50/60 p-3">
-                                <p class="text-sm font-semibold text-slate-900">{{ $suggestion['job_title'] }}</p>
-                                <p class="mt-1 text-xs text-slate-600">
-                                    {{ __('social_hub.ai.match_score', ['score' => (int) $suggestion['match_score']]) }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-600">
-                                    {{ __('social_hub.ai.match_signals', [
-                                        'signals' => collect((array) ($suggestion['matching_signals'] ?? []))
-                                            ->map(static fn (string $signal): string => __('social_hub.ai.signal_labels.'.$signal))
-                                            ->implode(', '),
-                                    ]) }}
-                                </p>
-                                <a href="{{ route('public.jobs.show', ['job' => $suggestion['job_id']]) }}"
-                                   class="mt-3 inline-flex rounded-lg border border-primary-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-primary-800 transition-weightless hover:bg-primary-100">
-                                    {{ __('social_hub.feed.view_roles') }}
-                                </a>
-                            </article>
-                        @endforeach
-                    </div>
-                </x-glass-card>
-            @endif
-
+            <!-- Posts List -->
             @if($posts->isEmpty())
-                <x-glass-card class="social-hub-card">
+                <div class="social-hub-card p-8 text-center text-slate-500">
                     <x-empty-state :title="__('social_hub.index.empty_title')" :message="__('social_hub.index.empty_message')" />
-                </x-glass-card>
+                </div>
             @else
                 <div class="space-y-4">
                     @foreach($posts as $post)
                         @php
-                            $typeClass = match ((string) $post->type) {
-                                \App\Models\SocialPost::TYPE_ANNOUNCEMENT => 'bg-danger-100 text-danger-900 border-danger-200',
-                                \App\Models\SocialPost::TYPE_WELCOME => 'bg-success-100 text-success-900 border-success-200',
-                                \App\Models\SocialPost::TYPE_IDEA => 'bg-primary-100 text-primary-900 border-primary-200',
-                                default => 'bg-slate-100 text-slate-900 border-slate-200',
+                            $authorName = $post->author?->profile?->full_name ?? $post->author?->email ?? __('social_hub.unknown_author');
+                            $initials = collect(explode(' ', trim($authorName)))->filter()->map(fn ($part) => strtoupper(substr($part, 0, 1)))->take(2)->implode('');
+                            $avatarUrl = $post->author?->profile?->avatar_url ?? 'https://api.dicebear.com/9.x/avataaars/svg?seed=' . urlencode($authorName) . '&backgroundColor=e2e8f0';
+
+
+                            $typeLabel = match ((string) $post->type) {
+                                \App\Models\SocialPost::TYPE_ANNOUNCEMENT => 'Annonce RH',
+                                \App\Models\SocialPost::TYPE_WELCOME => 'Bienvenue',
+                                \App\Models\SocialPost::TYPE_IDEA => 'Conseil',
+                                \App\Models\SocialPost::TYPE_KUDOS => 'Félicitations',
+                                'event' => 'Événement',
+                                'job' => 'Job',
+                                'media' => 'Média',
+                                default => strtoupper($post->type),
                             };
+
+                            $typeClass = match ((string) $post->type) {
+                                \App\Models\SocialPost::TYPE_ANNOUNCEMENT => 'bg-blue-50 text-blue-600 border border-blue-100',
+                                \App\Models\SocialPost::TYPE_WELCOME => 'bg-pink-50 text-pink-600 border border-pink-100',
+                                \App\Models\SocialPost::TYPE_IDEA => 'bg-amber-50 text-amber-600 border border-amber-100',
+                                \App\Models\SocialPost::TYPE_KUDOS => 'bg-yellow-50 text-yellow-600 border border-yellow-100',
+                                default => 'bg-slate-50 text-slate-600 border border-slate-100',
+                            };
+
                             $isOwnPost = (string) $post->author_user_id === (string) auth()->id();
                             $metadata = is_array($post->metadata_json) ? $post->metadata_json : [];
-                            $kudosMeta = is_array(data_get($metadata, 'kudos')) ? data_get($metadata, 'kudos') : [];
-                            $interactionMeta = is_array(data_get($metadata, 'interaction')) ? data_get($metadata, 'interaction') : [];
                             $reactionSummary = is_array($post->reaction_summary ?? null) ? $post->reaction_summary : [];
+                            $comments = $metadata['comments'] ?? [];
+
+                            // Split first line as title
+                            $lines = explode("\n", trim($post->content_text));
+                            $title = null;
+                            $body = $post->content_text;
+                            if (count($lines) > 1 && strlen($lines[0]) < 80) {
+                                $title = $lines[0];
+                                $body = implode("\n", array_slice($lines, 1));
+                            }
                         @endphp
 
-                        <x-glass-card class="social-hub-card p-5">
-                            <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900">
-                                        {{ __('social_hub.feed.posted_by', ['name' => $post->author?->profile?->full_name ?? $post->author?->email ?? __('social_hub.unknown_author')]) }}
-                                    </p>
-                                    <p class="mt-0.5 text-xs text-slate-600">{{ optional($post->created_at)->diffForHumans() }}</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="rounded-full border px-2.5 py-1 text-xs font-semibold {{ $typeClass }}">
-                                        {{ __('social_hub.post_types.'.$post->type) }}
-                                    </span>
-                                    <span class="rounded-full border border-slate-200 bg-white/85 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                                        {{ __('social_hub.visibilities.'.$post->visibility) }}
-                                    </span>
-                                </div>
-                            </div>
-
-                            @if(! empty($kudosMeta))
-                                <div class="mt-3 rounded-xl border border-success-200/80 bg-success-50/75 px-3 py-2 text-sm text-slate-800">
-                                    <p class="font-semibold text-success-900">{{ data_get($kudosMeta, 'icon') }} {{ data_get($kudosMeta, 'category_label') }}</p>
-                                    <p class="mt-1 text-xs text-slate-700">
-                                        {{ __('social_hub.kudos.from_to', [
-                                            'sender' => $post->author?->profile?->full_name ?? $post->author?->email ?? __('social_hub.unknown_author'),
-                                            'recipient' => (string) data_get($kudosMeta, 'recipient_name', __('social_hub.unknown_author')),
-                                        ]) }}
-                                    </p>
-                                </div>
-                            @endif
-
-                            <div class="mt-3 space-y-2">
-                                <p class="text-sm leading-relaxed text-slate-800">{!! nl2br(e((string) $post->content_text)) !!}</p>
-
-                                @if($post->media_url)
-                                    <a href="{{ $post->media_url }}" target="_blank" rel="noopener" class="inline-flex rounded-lg border border-danger-200 bg-danger-50 px-2.5 py-1.5 text-xs font-semibold text-danger-800 transition-weightless hover:bg-danger-100">
-                                        {{ __('social_hub.feed.media_link') }}
-                                    </a>
-                                @endif
-
-                                @if($post->relatedJob)
-                                    @php
-                                        $ctaLabel = (string) data_get($metadata, 'cta.label', __('social_hub.feed.view_roles'));
-                                    @endphp
-                                    <a href="{{ route('public.jobs.show', ['job' => $post->relatedJob]) }}" class="inline-flex rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-800 transition-weightless hover:bg-primary-100">
-                                        {{ $ctaLabel }}
-                                    </a>
-                                @endif
-                            </div>
-
-                            @if((string) $post->type === \App\Models\SocialPost::TYPE_IDEA && ! empty($post->poll_summary))
-                                <div class="mt-4 rounded-xl border border-primary-200/70 bg-primary-50/65 p-3">
-                                    <p class="text-xs uppercase tracking-[0.18em] text-primary-700">{{ __('social_hub.polls.label') }}</p>
-                                    <p class="mt-1 text-sm font-semibold text-slate-900">{{ $post->poll_question_text }}</p>
-
-                                    @if($canVotePolls)
-                                        <div class="mt-3 flex flex-wrap gap-2">
-                                            @foreach($post->poll_summary as $pollOption)
-                                                <form method="POST" action="{{ route($pollVoteRouteName, $isCandidatePortal ? ['company' => $company->slug, 'post' => $post->id] : array_filter(['post' => $post->id, 'company_id' => request('company_id')])) }}">
-                                                    @csrf
-                                                    @if(auth()->user()?->isSuperadmin() && request('company_id') && ! $isCandidatePortal)
-                                                        <input type="hidden" name="company_id" value="{{ request('company_id') }}">
-                                                    @endif
-                                                    <input type="hidden" name="option_key" value="{{ $pollOption['key'] }}">
-                                                    <button type="submit" class="rounded-full border border-primary-300/70 bg-white px-3 py-1.5 text-xs font-semibold text-primary-800 transition-weightless hover:bg-primary-100">
-                                                        {{ $pollOption['emoji'] }} {{ $pollOption['label'] }}
-                                                    </button>
-                                                </form>
-                                            @endforeach
+                        <div class="social-hub-card">
+                            <!-- Post Header -->
+                            <div class="flex items-center gap-3">
+                                <div class="shrink-0">
+                                    @if($avatarUrl)
+                                        <img src="{{ $avatarUrl }}" alt="{{ $authorName }}" class="h-10 w-10 rounded-full object-cover">
+                                    @else
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">
+                                            {{ $initials }}
                                         </div>
                                     @endif
-
-                                    <div class="mt-3 space-y-2">
-                                        @foreach($post->poll_summary as $pollOption)
-                                            <div>
-                                                <div class="flex items-center justify-between text-xs text-slate-700">
-                                                    <span>{{ $pollOption['emoji'] }} {{ $pollOption['label'] }}</span>
-                                                    <span>{{ $pollOption['count'] }} ({{ $pollOption['percent'] }}%)</span>
-                                                </div>
-                                                <div class="mt-1 h-2 rounded-full bg-white/80">
-                                                    <div class="h-2 rounded-full bg-primary-500" style="width: {{ $pollOption['percent'] }}%"></div>
-                                                </div>
-                                            </div>
-                                        @endforeach
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-semibold text-slate-900 leading-tight">{{ $authorName }}</h3>
+                                    <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+                                        <span>{{ optional($post->created_at)->diffForHumans() }}</span>
+                                        <span>•</span>
+                                        <span class="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase {{ $typeClass }}">
+                                            ✔ {{ $typeLabel }}
+                                        </span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Post Content -->
+                            <div class="mt-4">
+                                @if($title)
+                                    <h4 class="text-base font-bold text-slate-900 mb-1.5">{{ $title }}</h4>
+                                @endif
+                                <p class="text-base text-slate-700 leading-relaxed font-normal">{!! nl2br(e(trim($body))) !!}</p>
+
+                                <!-- Large Image Display -->
+                                @if($post->media_url)
+                                    <div class="mt-4 overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                                        <img src="{{ $post->media_url }}" alt="Post media" class="w-full h-auto object-cover max-h-[600px]">
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Action & Counter Row -->
+                            <div class="mt-4 flex items-center justify-between border-t border-b border-slate-100 py-3">
+                                <div class="flex items-center gap-4">
+                                    @foreach($reactionTypes as $reactionType)
+                                        @php
+                                            $count = (int) ($reactionSummary[$reactionType] ?? 0);
+                                            $hasReacted = $post->reactionEntries->contains(
+                                                fn ($reaction) => (string) $reaction->reaction_type === (string) $reactionType
+                                                    && (string) $reaction->user_id === (string) auth()->id()
+                                            );
+                                        @endphp
+                                        @if($isOwnPost)
+                                            <span class="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-full px-3 py-1">
+                                                <span>{{ $reactionType }}</span>
+                                                <span>{{ $count }}</span>
+                                            </span>
+                                        @else
+                                            <form method="POST" action="{{ route($reactionRouteName, $isCandidatePortal ? ['company' => $company->slug, 'post' => $post->id] : array_filter(['post' => $post->id, 'company_id' => request('company_id')])) }}" class="inline">
+                                                @csrf
+                                                @if(auth()->user()?->isSuperadmin() && request('company_id') && ! $isCandidatePortal)
+                                                    <input type="hidden" name="company_id" value="{{ request('company_id') }}">
+                                                @endif
+                                                <input type="hidden" name="reaction_type" value="{{ $reactionType }}">
+                                                <button type="submit" class="inline-flex items-center gap-1.5 text-xs rounded-full border px-3 py-1 transition-all {{ $hasReacted ? 'border-pink-200 bg-pink-50 text-pink-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+                                                    <span>{{ $reactionType }}</span>
+                                                    <span>{{ $count }}</span>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endforeach
+
+                                    <!-- Comment Count Indicator -->
+                                    <button type="button" class="inline-flex items-center gap-1.5 text-xs text-slate-500 border border-slate-200 bg-white hover:bg-slate-50 rounded-full px-3 py-1 transition-all">
+                                        <span>💬</span>
+                                        <span>{{ count($comments) }}</span>
+                                    </button>
+                                </div>
+
+                                <!-- Far Right: Reactor Names text -->
+                                @php
+                                    $reactors = $post->reactionEntries->map(function ($entry) {
+                                        return $entry->user?->profile?->full_name ?? $entry->user?->email;
+                                    })->filter()->unique()->values();
+
+                                    $reactorText = '';
+                                    if ($reactors->count() > 0) {
+                                        $firstReactor = $reactors->first();
+                                        if ($reactors->count() == 1) {
+                                            $reactorText = "Aimé par " . e($firstReactor);
+                                        } else {
+                                            $reactorText = "Aimé par " . e($firstReactor) . " et " . ($reactors->count() - 1) . " autres";
+                                        }
+                                    }
+                                @endphp
+                                @if($reactorText !== '')
+                                    <div class="text-xs text-slate-500 font-normal">
+                                        {{ $reactorText }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Comments List Section (Flat) -->
+                            @if(!empty($comments))
+                                <div class="mt-4 space-y-4 pt-2">
+                                    @foreach($comments as $comment)
+                                        @php
+                                            $commentTime = isset($comment['created_at']) ? \Carbon\Carbon::parse($comment['created_at']) : null;
+                                            $commentDiff = $commentTime ? $commentTime->diffForHumans() : '';
+
+                                            $commentAuthorName = $comment['user_name'] ?? 'Utilisateur';
+                                            $commentInitials = collect(explode(' ', trim($commentAuthorName)))->filter()->map(fn ($part) => strtoupper(substr($part, 0, 1)))->take(2)->implode('');
+
+                                            $commentUser = \App\Models\User::find($comment['user_id'] ?? null);
+                                            $commentAvatarUrl = $commentUser?->profile?->avatar_url ?? 'https://api.dicebear.com/9.x/avataaars/svg?seed=' . urlencode($commentAuthorName) . '&backgroundColor=e2e8f0';
+
+                                        @endphp
+                                        <div class="flex items-start gap-3">
+                                            <div class="shrink-0">
+                                                @if($commentAvatarUrl)
+                                                    <img src="{{ $commentAvatarUrl }}" alt="{{ $commentAuthorName }}" class="h-8 w-8 rounded-full object-cover">
+                                                @else
+                                                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-700">
+                                                        {{ $commentInitials }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-baseline justify-between gap-2">
+                                                    <span class="text-xs font-bold text-slate-900">{{ $commentAuthorName }}</span>
+                                                    <span class="text-[10px] text-slate-400">{{ $commentDiff }}</span>
+                                                </div>
+                                                <p class="mt-1 text-xs text-slate-700 leading-normal">{{ $comment['comment_text'] }}</p>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             @endif
 
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                @foreach($reactionTypes as $reactionType)
-                                    @php
-                                        $count = (int) ($reactionSummary[$reactionType] ?? 0);
-                                        $hasReacted = $post->reactionEntries->contains(
-                                            fn ($reaction) => (string) $reaction->reaction_type === (string) $reactionType
-                                                && (string) $reaction->user_id === (string) auth()->id()
-                                        );
-                                    @endphp
-
-                                    @if($isOwnPost)
-                                        <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500">
-                                            <span>{{ $reactionType }}</span>
-                                            <span class="rounded-full bg-white px-1.5 py-0.5 text-[11px]">{{ $count }}</span>
-                                        </span>
-                                    @else
-                                        <form method="POST" action="{{ route($reactionRouteName, $isCandidatePortal ? ['company' => $company->slug, 'post' => $post->id] : array_filter(['post' => $post->id, 'company_id' => request('company_id')])) }}">
-                                            @csrf
-                                            @if(auth()->user()?->isSuperadmin() && request('company_id') && ! $isCandidatePortal)
-                                                <input type="hidden" name="company_id" value="{{ request('company_id') }}">
-                                            @endif
-                                            <input type="hidden" name="reaction_type" value="{{ $reactionType }}">
-                                            <button type="submit" class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-weightless {{ $hasReacted ? 'border-danger-300 bg-danger-100 text-danger-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' }}">
-                                                <span>{{ $reactionType }}</span>
-                                                <span class="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px]">{{ $count }}</span>
-                                            </button>
-                                        </form>
-                                    @endif
-                                @endforeach
-                            </div>
-
-                            @if(! $isOwnPost && (string) data_get($interactionMeta, 'label', '') !== '')
-                                <form method="POST" action="{{ route($reactionRouteName, $isCandidatePortal ? ['company' => $company->slug, 'post' => $post->id] : array_filter(['post' => $post->id, 'company_id' => request('company_id')])) }}" class="mt-3">
-                                    @csrf
-                                    @if(auth()->user()?->isSuperadmin() && request('company_id') && ! $isCandidatePortal)
-                                        <input type="hidden" name="company_id" value="{{ request('company_id') }}">
-                                    @endif
-                                    <input type="hidden" name="reaction_type" value="{{ (string) data_get($interactionMeta, 'reaction', \App\Models\SocialReaction::TYPE_WAVE) }}">
-                                    <button type="submit" class="rounded-xl border border-danger-300 bg-danger-50 px-3 py-1.5 text-xs font-semibold text-danger-800 transition-weightless hover:bg-danger-100">
-                                        {{ (string) data_get($interactionMeta, 'label') }}
-                                    </button>
-                                </form>
-                            @endif
-
-                            @if($isOwnPost)
-                                <p class="mt-2 text-xs text-slate-500">{{ __('social_hub.reactions.own_post_hint') }}</p>
-                            @endif
-                        </x-glass-card>
+                            <!-- Dynamic Comments Form -->
+                            <form method="POST" action="{{ route($isCandidatePortal ? 'candidate.social-hub.comments.store' : 'social-hub.comments.store', $isCandidatePortal ? ['company' => $company->slug, 'post' => $post->id] : ['post' => $post->id]) }}" class="mt-4 flex gap-2">
+                                @csrf
+                                @if(auth()->user()?->isSuperadmin() && request('company_id') && !$isCandidatePortal)
+                                    <input type="hidden" name="company_id" value="{{ request('company_id') }}">
+                                @endif
+                                <input type="text" name="comment_text" placeholder="Votre commentaire..." required class="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs focus:border-emerald-500 focus:ring-emerald-500">
+                                <button type="submit" class="rounded-xl bg-[#004d3d] hover:bg-[#00382c] px-5 py-2.5 text-xs font-semibold text-white transition-all shadow-sm">Poster</button>
+                            </form>
+                        </div>
                     @endforeach
                 </div>
 
                 @if($posts instanceof \Illuminate\Contracts\Pagination\Paginator)
-                    <div>{{ $posts->links() }}</div>
+                    <div class="mt-4">{{ $posts->links() }}</div>
                 @endif
             @endif
         @endif

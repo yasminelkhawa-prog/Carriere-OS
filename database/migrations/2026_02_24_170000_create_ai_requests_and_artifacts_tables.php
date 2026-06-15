@@ -28,8 +28,12 @@ return new class extends Migration
             $table->index('created_at');
         });
 
-        DB::statement("ALTER TABLE ai_requests DROP CONSTRAINT IF EXISTS ai_requests_status_check");
-        DB::statement("ALTER TABLE ai_requests ADD CONSTRAINT ai_requests_status_check CHECK (status IN ('queued', 'running', 'succeeded', 'failed'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE ai_requests DROP CONSTRAINT IF EXISTS ai_requests_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE ai_requests ADD CONSTRAINT ai_requests_status_check CHECK (status IN ('queued', 'running', 'succeeded', 'failed'))");
+        }
 
         Schema::create('ai_artifacts', function (Blueprint $table): void {
             $table->uuid('id')->primary();

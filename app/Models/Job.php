@@ -41,6 +41,7 @@ class Job extends Model
         'location_country',
         'location_postal_code',
         'employment_type',
+        'job_family',
         'status',
         'blind_mode_active',
         'salary_min',
@@ -101,6 +102,7 @@ class Job extends Model
             'responsibilities',
             'requirements',
             'benefits',
+            'reporting_line',
             'company_intro',
             'custom',
         ];

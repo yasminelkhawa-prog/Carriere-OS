@@ -36,7 +36,7 @@ return [
         'empty_message' => 'Create values to show on the candidate portal.',
     ],
     'faqs' => [
-        'title' => 'FAQ Items',
+        'title' => 'FAQ',
         'subtitle' => 'Manage Candidate Guide FAQ content.',
         'category' => 'Category',
         'category_placeholder' => 'All categories',
@@ -52,7 +52,7 @@ return [
         'created' => 'FAQ item created.',
         'updated' => 'FAQ item updated.',
         'deleted' => 'FAQ item deleted.',
-        'empty_title' => 'No FAQ Items',
+        'empty_title' => 'No FAQ',
         'empty_message' => 'Add FAQ items to power the Candidate Guide bot.',
     ],
     'company_filter' => [

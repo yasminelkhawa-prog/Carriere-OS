@@ -1056,7 +1056,7 @@ class AiRequestService
         );
     }
 
-    private function persistCvParsingResult(AiRequest $request, mixed $output): void
+    public function persistCvParsingResult(AiRequest $request, mixed $output): void
     {
         if (! is_array($output)) {
             return;

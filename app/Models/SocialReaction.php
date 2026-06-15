@@ -14,10 +14,12 @@ class SocialReaction extends Model
     use HasFactory;
     use HasUuids;
 
-    public const TYPE_FIRE = "\u{1F525}";
-    public const TYPE_HEART = "\u{1F49C}";
-    public const TYPE_CLAP = "\u{1F44F}";
-    public const TYPE_WAVE = "\u{1F44B}";
+    public const TYPE_FIRE = '🔥';
+    public const TYPE_HEART = '❤️';
+    public const TYPE_CLAP = '👏';
+    public const TYPE_WAVE = '👋';
+    public const TYPE_LIKE = '👍';
+    public const TYPE_ROCKET = '🚀';
 
     public const UPDATED_AT = null;
 
@@ -52,10 +54,9 @@ class SocialReaction extends Model
     public static function types(): array
     {
         return [
-            self::TYPE_FIRE,
+            self::TYPE_LIKE,
             self::TYPE_HEART,
-            self::TYPE_CLAP,
-            self::TYPE_WAVE,
+            self::TYPE_ROCKET,
         ];
     }
 

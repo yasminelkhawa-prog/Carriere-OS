@@ -4,11 +4,11 @@ return [
     'unknown_author' => 'Unknown user',
     'company_required' => [
         'title' => 'Select a Company',
-        'message' => 'Choose an active company to open Social Hub.',
+        'message' => 'Choose an active company to open Broadcast.',
     ],
     'index' => [
-        'title' => 'Social Hub',
-        'heading' => 'Social Hub',
+        'title' => 'Broadcast',
+        'heading' => 'Broadcast',
         'watercooler_label' => 'The Watercooler in the Cloud',
         'subheading' => 'A curated culture feed with welcomes, kudos, announcements, and weekly pulse checks.',
         'empty_title' => 'No social posts yet',
@@ -123,7 +123,7 @@ return [
         'kudos_recipient_not_self' => 'You cannot send kudos to yourself.',
     ],
     'flash' => [
-        'post_created' => 'Post published to Social Hub.',
+        'post_created' => 'Post published to Broadcast.',
         'reaction_added' => 'Reaction recorded.',
         'reaction_unchanged' => 'You already added this reaction.',
         'permission_denied' => 'You do not have permission to create this post type.',

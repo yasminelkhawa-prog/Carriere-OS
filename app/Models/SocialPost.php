@@ -66,10 +66,8 @@ class SocialPost extends Model
     public static function types(): array
     {
         return [
-            self::TYPE_KUDOS,
             self::TYPE_WELCOME,
             self::TYPE_ANNOUNCEMENT,
-            self::TYPE_IDEA,
         ];
     }
 
@@ -81,7 +79,6 @@ class SocialPost extends Model
         return [
             self::TYPE_WELCOME,
             self::TYPE_ANNOUNCEMENT,
-            self::TYPE_IDEA,
         ];
     }
 

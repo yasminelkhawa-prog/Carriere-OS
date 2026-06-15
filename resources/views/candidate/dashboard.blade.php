@@ -60,7 +60,7 @@
                     <div class="mt-6 flex flex-wrap gap-3">
                         <a href="{{ route('candidate.applications', ['company' => $company->slug]) }}" class="inline-flex items-center rounded-xl border border-white/30 bg-white/15 px-4 py-2 text-sm font-semibold text-white transition-weightless hover:bg-white/25">{{ __('candidate_portal.dashboard.actions.review_applications') }}</a>
                         <a href="{{ route('candidate.assessments.sjt') }}" class="inline-flex items-center rounded-xl border border-white/20 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition-weightless hover:bg-slate-100">{{ __('candidate_portal.dashboard.actions.open_assessments') }}</a>
-                        <a href="{{ route('candidate.updates', ['company' => $company->slug]) }}" class="inline-flex items-center rounded-xl border border-white/30 bg-transparent px-4 py-2 text-sm font-semibold text-white transition-weightless hover:bg-white/10">{{ __('ui.nav.candidate_updates') }}</a>
+
                     </div>
                 </div>
 
@@ -68,59 +68,21 @@
                     <p class="text-xs uppercase tracking-[0.2em] text-white/70">{{ __('candidate_portal.dashboard.focus.eyebrow') }}</p>
                     <h2 class="mt-2 text-xl font-semibold">{{ __('candidate_portal.dashboard.focus.title') }}</h2>
 
-                    @if($upcomingInterview)
-                        <div class="mt-4 rounded-2xl border border-white/15 bg-slate-950/20 p-4">
-                            <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.next_interview') }}</p>
-                            <p class="mt-2 text-lg font-semibold">{{ data_get($upcomingInterview, 'application.job.title', __('sjt.messages.unknown_job')) }}</p>
-                            <p class="mt-1 text-sm text-white/80">{{ data_get($upcomingInterview, 'interview.scheduled_start_at')?->format('M j, Y g:i A') }}</p>
+                    @if(($cvTipsCount ?? 0) > 0)
+                        <div class="mt-4 rounded-2xl border border-aura-300/25 bg-white/10 p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.cv_tip.eyebrow') }}</p>
+                                <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85">
+                                    {{ __('candidate_portal.dashboard.focus.cv_tip.counter', ['current' => $cvTipNumber, 'total' => $cvTipsCount]) }}
+                                </span>
+                            </div>
+                            <p class="mt-2 text-sm leading-relaxed text-white/85">💡 {{ $cvTipOfDay }}</p>
                         </div>
-                    @else
-                        <div class="mt-4 rounded-2xl border border-dashed border-white/20 bg-slate-950/15 p-4 text-sm text-white/80">{{ __('candidate_portal.dashboard.focus.no_interview') }}</div>
                     @endif
-
-                    <div class="mt-4 rounded-2xl border border-white/15 bg-slate-950/15 p-4">
-                        <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.next_step') }}</p>
-                        <p class="mt-2 text-sm text-white/85">{{ $primaryNextStep }}</p>
-                    </div>
                 </article>
             </div>
         </section>
 
-        <div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-            <x-glass-card :title="__('ui.nav.candidate_updates')" :subtitle="__('candidate_portal.notifications.subtitle')">
-                @if($previewNotifications->isEmpty())
-                    <x-empty-state :title="__('candidate_portal.notifications.empty_title')" :message="__('candidate_portal.notifications.empty_message')" />
-                @else
-                    <div class="space-y-3">
-                        @foreach($previewNotifications as $notification)
-                            <article class="rounded-xl border border-white/80 bg-white/75 p-4">
-                                <div class="flex flex-wrap items-center justify-between gap-2">
-                                    <span class="inline-flex rounded-full border border-aura-200/70 bg-aura-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-aura-800">{{ __('candidate_portal.notifications.types.'.($notification['type'] ?? 'application')) }}</span>
-                                    <span class="text-xs text-slate-500">{{ \Illuminate\Support\Carbon::parse($notification['created_at'])->diffForHumans() }}</span>
-                                </div>
-                                <p class="mt-2 text-sm font-semibold text-slate-900">{{ $notification['title'] }}</p>
-                                <p class="mt-1 text-sm text-slate-700">{{ $notification['message'] }}</p>
-                            </article>
-                        @endforeach
-                    </div>
-                @endif
-            </x-glass-card>
 
-            <x-glass-card :title="__('candidate_portal.social_hub.preview_title')" :subtitle="__('candidate_portal.social_hub.preview_description')">
-                <div class="space-y-3">
-                    @forelse(($socialHubPreviewPosts ?? collect()) as $post)
-                        <div class="rounded-xl border border-slate-200/80 bg-slate-50/75 p-3">
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('social_hub.types.'.$post->type) }}</p>
-                                <p class="text-[11px] text-slate-500">{{ $post->created_at?->diffForHumans() }}</p>
-                            </div>
-                            <p class="mt-2 text-sm font-semibold text-slate-900">{{ \Illuminate\Support\Str::limit((string) $post->content_text, 110) }}</p>
-                        </div>
-                    @empty
-                        <x-empty-state :title="__('candidate_portal.social_hub.preview_title')" :message="__('candidate_portal.social_hub.preview_empty')" />
-                    @endforelse
-                </div>
-            </x-glass-card>
-        </div>
     </div>
 </x-shell-layout>

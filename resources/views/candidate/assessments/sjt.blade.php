@@ -108,7 +108,7 @@
                                     </div>
                                 @endif
 
-                                <p class="mt-4 whitespace-pre-line text-sm leading-relaxed text-slate-700">{{ $selectedScenario->scenario_text }}</p>
+                                <div class="mt-4 text-sm leading-relaxed text-slate-700">{!! $selectedScenario->scenario_text !!}</div>
                             </section>
 
                             @php
@@ -119,10 +119,8 @@
                                 class="rounded-2xl border border-white/80 bg-white/65 p-5 shadow-aura backdrop-blur-2xl"
                                 @unless($isFinalSubmission)
                                     x-data="{
-                                        length: {{ strlen(old('response_text', (string) ($selectedResponse?->response_text ?? ''))) }},
-                                        blockedMessage: ''
+                                        length: {{ strlen(old('response_text', (string) ($selectedResponse?->response_text ?? ''))) }}
                                     }"
-                                    x-on:sjt-blocked.window="blockedMessage = $event.detail.message"
                                 @endunless
                             >
                                 <header class="flex flex-wrap items-start justify-between gap-2">
@@ -130,8 +128,6 @@
                                         <h4 class="text-base font-semibold text-slate-900">{{ __('sjt.response_title') }}</h4>
                                         @if($isFinalSubmission)
                                             <p class="text-xs text-slate-600">{{ __('sjt.readonly_notice') }}</p>
-                                        @else
-                                            <p class="text-xs text-slate-600">{{ __('sjt.copy_paste_notice') }}</p>
                                         @endif
                                     </div>
                                     <span class="rounded-full border border-aura-300/60 bg-aura-100/70 px-3 py-1 text-xs font-medium uppercase tracking-wide text-aura-800">
@@ -153,7 +149,7 @@
                                         @error('response_text')
                                             <p class="text-xs text-danger-700">{{ $message }}</p>
                                         @enderror
-                                        <p x-show="blockedMessage !== ''" x-text="blockedMessage" class="text-xs text-danger-700"></p>
+
 
                                         <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                                             <p>{{ __('sjt.length_hint', ['min' => $responseMin, 'max' => $responseMax]) }}</p>
@@ -230,18 +226,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const responseField = document.getElementById('sjt-response-text');
-            const blockedMessage = @json(__('sjt.paste_blocked_message'));
 
-            if (responseField) {
-                ['copy', 'cut', 'paste', 'contextmenu', 'drop'].forEach(function (eventName) {
-                    responseField.addEventListener(eventName, function (event) {
-                        event.preventDefault();
-                        window.dispatchEvent(new CustomEvent('sjt-blocked', {
-                            detail: { message: blockedMessage }
-                        }));
-                    });
-                });
-            }
 
             document.dispatchEvent(new CustomEvent('candidate-guide:disable', {
                 detail: { page: 'sjt-assessment' }

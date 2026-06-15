@@ -134,33 +134,41 @@ class CareerSiteController extends Controller
         }
 
         $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email:rfc', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'phone' => ['nullable', 'string', 'max:60'],
-            'location' => ['nullable', 'string', 'max:255'],
-            'referral_code' => ['nullable', 'string', 'max:120'],
-            'assistant_answers_json' => ['nullable', 'string', 'max:10000'],
-            'resume' => ['required', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:5120'],
-            'portfolio' => ['nullable', 'file', 'extensions:pdf,doc,docx,rtf,txt,zip', 'max:10240'],
-            'consent' => ['required', 'accepted'],
-            'utm_source' => ['nullable', 'string', 'max:255'],
-            'utm_medium' => ['nullable', 'string', 'max:255'],
-            'utm_campaign' => ['nullable', 'string', 'max:255'],
+            'full_name'             => ['required', 'string', 'max:255'],
+            'email'                 => ['required', 'email:rfc', 'max:255'],
+            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'phone'                 => ['nullable', 'string', 'max:60'],
+            'location'              => ['nullable', 'string', 'max:255'],
+            'referral_code'         => ['nullable', 'string', 'max:120'],
+            'assistant_answers_json'=> ['nullable', 'string', 'max:10000'],
+            'resume'                => ['required', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:5120'],
+            'portfolio'             => ['nullable', 'file', 'extensions:pdf,doc,docx,rtf,txt,zip', 'max:10240'],
+            'consent'               => ['required', 'accepted'],
+            'utm_source'            => ['nullable', 'string', 'max:255'],
+            'utm_medium'            => ['nullable', 'string', 'max:255'],
+            'utm_campaign'          => ['nullable', 'string', 'max:255'],
+            // New profile fields
+            'years_experience'      => ['nullable', 'integer', 'min:0', 'max:60'],
+            'last_company'          => ['nullable', 'string', 'max:255'],
+            'main_skills'           => ['nullable', 'string', 'max:1000'],
+            'diploma_type'          => ['nullable', 'string', 'in:master,grande_ecole,ingenieur,licence,bts,doctorat,mba,autre'],
+            'school_type'           => ['nullable', 'string', 'in:moroccan,foreign'],
+            'school_name'           => ['nullable', 'string', 'max:255'],
+            'school_country'        => ['nullable', 'string', 'max:100'],
         ], [
-            'consent.required' => __('career.apply.consent.required'),
-            'consent.accepted' => __('career.apply.consent.required'),
-            'password.required' => __('career.apply.errors.password_required'),
-            'password.min' => __('career.apply.errors.password_min'),
-            'password.confirmed' => __('career.apply.errors.password_confirmed'),
-            'resume.required' => __('career.apply.errors.resume_required'),
-            'resume.file' => __('career.apply.errors.resume_file'),
-            'resume.mimes' => __('career.apply.errors.resume_mimes'),
-            'resume.mimetypes' => __('career.apply.errors.resume_mimes'),
-            'resume.max' => __('career.apply.errors.resume_max'),
-            'portfolio.file' => __('career.apply.errors.portfolio_file'),
-            'portfolio.extensions' => __('career.apply.errors.portfolio_mimes'),
-            'portfolio.max' => __('career.apply.errors.portfolio_max'),
+            'consent.required'        => __('career.apply.consent.required'),
+            'consent.accepted'        => __('career.apply.consent.required'),
+            'password.required'       => __('career.apply.errors.password_required'),
+            'password.min'            => __('career.apply.errors.password_min'),
+            'password.confirmed'      => __('career.apply.errors.password_confirmed'),
+            'resume.required'         => __('career.apply.errors.resume_required'),
+            'resume.file'             => __('career.apply.errors.resume_file'),
+            'resume.mimes'            => __('career.apply.errors.resume_mimes'),
+            'resume.mimetypes'        => __('career.apply.errors.resume_mimes'),
+            'resume.max'              => __('career.apply.errors.resume_max'),
+            'portfolio.file'          => __('career.apply.errors.portfolio_file'),
+            'portfolio.extensions'    => __('career.apply.errors.portfolio_mimes'),
+            'portfolio.max'           => __('career.apply.errors.portfolio_max'),
         ]);
 
         $firstNonTerminalStage = $this->firstApplicationStageFor($job);
@@ -203,18 +211,32 @@ class CareerSiteController extends Controller
             $candidate = Candidate::withoutGlobalScopes()->firstOrCreate(
                 ['company_id' => $company->id, 'email' => $normalizedEmail],
                 [
-                    'user_id' => $user->id,
-                    'full_name' => $validated['full_name'],
-                    'phone' => $validated['phone'] ?? null,
-                    'location' => $validated['location'] ?? null,
+                    'user_id'          => $user->id,
+                    'full_name'        => $validated['full_name'],
+                    'phone'            => $validated['phone'] ?? null,
+                    'location'         => $validated['location'] ?? null,
+                    'years_experience' => $validated['years_experience'] ?? null,
+                    'last_company'     => $validated['last_company'] ?? null,
+                    'main_skills'      => $validated['main_skills'] ?? null,
+                    'diploma_type'     => $validated['diploma_type'] ?? null,
+                    'school_type'      => $validated['school_type'] ?? null,
+                    'school_name'      => $validated['school_name'] ?? null,
+                    'school_country'   => $validated['school_country'] ?? null,
                 ]
             );
 
             $candidate->forceFill([
-                'user_id' => $candidate->user_id ?: $user->id,
-                'full_name' => $validated['full_name'],
-                'phone' => $validated['phone'] ?? null,
-                'location' => $validated['location'] ?? null,
+                'user_id'          => $candidate->user_id ?: $user->id,
+                'full_name'        => $validated['full_name'],
+                'phone'            => $validated['phone'] ?? null,
+                'location'         => $validated['location'] ?? null,
+                'years_experience' => $validated['years_experience'] ?? null,
+                'last_company'     => $validated['last_company'] ?? null,
+                'main_skills'      => $validated['main_skills'] ?? null,
+                'diploma_type'     => $validated['diploma_type'] ?? null,
+                'school_type'      => $validated['school_type'] ?? null,
+                'school_name'      => $validated['school_name'] ?? null,
+                'school_country'   => $validated['school_country'] ?? null,
             ])->save();
 
             $activeDuplicate = Application::withoutGlobalScopes()
@@ -339,9 +361,25 @@ class CareerSiteController extends Controller
             application: $application
         );
 
+        // Store prefill data in session so the confirmation page can offer to save it
+        $request->session()->put('career_apply_prefill', [
+            'full_name'        => $validated['full_name'],
+            'email'            => $normalizedEmail,
+            'phone'            => $validated['phone'] ?? null,
+            'location'         => $validated['location'] ?? null,
+            'years_experience' => $validated['years_experience'] ?? null,
+            'last_company'     => $validated['last_company'] ?? null,
+            'main_skills'      => $validated['main_skills'] ?? null,
+            'diploma_type'     => $validated['diploma_type'] ?? null,
+            'school_type'      => $validated['school_type'] ?? null,
+            'school_name'      => $validated['school_name'] ?? null,
+            'school_country'   => $validated['school_country'] ?? null,
+        ]);
+        $request->session()->put('career_apply_pending_save_prompt', true);
+
         return redirect()->route('career.apply.confirmation', [
-            'company' => $company,
-            'job' => $job,
+            'company'     => $company,
+            'job'         => $job,
             'application' => $application->id,
         ]);
     }
@@ -362,11 +400,34 @@ class CareerSiteController extends Controller
                 ->first();
         }
 
+        $showSavePrompt = (bool) $request->session()->pull('career_apply_pending_save_prompt', false);
+
         return view('career.confirmation', [
-            'company' => $company,
-            'job' => $job,
-            'application' => $application,
+            'company'         => $company,
+            'job'             => $job,
+            'application'     => $application,
+            'showSavePrompt'  => $showSavePrompt,
         ]);
+    }
+
+    public function saveApplicationData(Request $request, Company $company, Job $job): RedirectResponse
+    {
+        abort_unless($company->status === Company::STATUS_ACTIVE, 404);
+
+        $save = $request->boolean('save_data');
+
+        if ($save) {
+            // Keep prefill in a long-lived cookie-style session key (survives browser restarts)
+            $prefill = $request->session()->get('career_apply_prefill', []);
+            if (!empty($prefill)) {
+                $request->session()->put('career_apply_saved', $prefill);
+            }
+            $request->session()->flash('status', __('career.save_data.saved_notice'));
+        } else {
+            $request->session()->forget(['career_apply_prefill', 'career_apply_saved']);
+        }
+
+        return redirect()->route('career.index', ['company' => $company->slug]);
     }
 
     private function queueCvParsing(Application $application, CandidateDocument $resumeDocument): void

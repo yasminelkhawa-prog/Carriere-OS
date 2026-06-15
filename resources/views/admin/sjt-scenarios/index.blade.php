@@ -4,7 +4,7 @@
             <x-toast-alert type="success">{{ session('status') }}</x-toast-alert>
         @endif
 
-        <form method="GET" action="{{ route('admin.sjt-scenarios.index') }}" class="mt-4 grid gap-3 md:grid-cols-4">
+        <form method="GET" action="{{ route('admin.sjt-scenarios.index') }}" class="mt-4 grid gap-3 md:grid-cols-2">
             @if(auth()->user()?->isSuperadmin())
                 <x-form-field :label="__('master.company_filter.label')" name="company_id">
                     <select name="company_id" data-placeholder="{{ __('master.company_filter.placeholder') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">
@@ -15,14 +15,6 @@
                     </select>
                 </x-form-field>
             @endif
-            <x-form-field :label="__('sjt.admin.fields.job')" name="job_id">
-                <select name="job_id" data-placeholder="{{ __('sjt.admin.filters.all_jobs') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">
-                    <option value="">{{ __('sjt.admin.filters.all_jobs') }}</option>
-                    @foreach($jobs as $job)
-                        <option value="{{ $job->id }}" @selected((string) $selectedJobId === (string) $job->id)>{{ $job->title }}</option>
-                    @endforeach
-                </select>
-            </x-form-field>
             <x-form-field :label="__('sjt.admin.fields.status')" name="is_active">
                 <select name="is_active" data-placeholder="{{ __('sjt.admin.filters.status_placeholder') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">
                     <option value="all" @selected($selectedActiveFilter === 'all')>{{ __('sjt.admin.filters.status_all') }}</option>
@@ -30,10 +22,7 @@
                     <option value="inactive" @selected($selectedActiveFilter === 'inactive')>{{ __('sjt.admin.filters.status_inactive') }}</option>
                 </select>
             </x-form-field>
-            <x-form-field :label="__('sjt.admin.fields.search')" name="q">
-                <input type="text" name="q" value="{{ $searchTerm }}" placeholder="{{ __('sjt.admin.filters.search_placeholder') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">
-            </x-form-field>
-            <div class="md:col-span-4">
+            <div class="md:col-span-2">
                 <button type="submit" class="rounded-xl border border-aura-300/50 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-weightless hover:bg-white">
                     {{ __('sjt.admin.filters.apply') }}
                 </button>
@@ -67,13 +56,13 @@
                     <input type="url" name="scenario_media_url" value="{{ old('scenario_media_url') }}" placeholder="https://..." class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">
                 </x-form-field>
                 <x-form-field :label="__('sjt.admin.fields.scenario_text')" name="scenario_text">
-                    <textarea name="scenario_text" rows="4" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">{{ old('scenario_text') }}</textarea>
+                    <textarea name="scenario_text" rows="3" class="wysiwyg-editor-create w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2.5 text-slate-900 shadow-sm">{{ old('scenario_text') }}</textarea>
                 </x-form-field>
-                <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" name="is_active" value="1" class="rounded border-aura-300 text-aura-600 focus:ring-aura-400" @checked(old('is_active', true))>
-                    <span>{{ __('sjt.admin.fields.is_active') }}</span>
-                </label>
-                <div>
+                <div class="flex items-center justify-between pt-1">
+                    <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" name="is_active" value="1" class="rounded border-aura-300 text-aura-600 focus:ring-aura-400" @checked(old('is_active', true))>
+                        <span>{{ __('sjt.admin.fields.is_active') }}</span>
+                    </label>
                     <button type="submit" class="rounded-xl bg-success-600 px-4 py-2 text-sm font-medium text-white transition-weightless hover:bg-success-700">
                         {{ __('sjt.admin.actions.create') }}
                     </button>
@@ -99,7 +88,7 @@
                                 </select>
                             </div>
                             <input type="url" name="scenario_media_url" value="{{ old('scenario_media_url', $scenario->scenario_media_url) }}" placeholder="https://..." class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm">
-                            <textarea name="scenario_text" rows="4" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm">{{ old('scenario_text', $scenario->scenario_text) }}</textarea>
+                            <textarea name="scenario_text" rows="4" class="wysiwyg-editor w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm">{{ old('scenario_text', $scenario->scenario_text) }}</textarea>
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div class="flex flex-wrap items-center gap-3 text-xs text-slate-600">
                                     <span>{{ __('sjt.admin.labels.responses', ['count' => (int) $scenario->responses_count]) }}</span>
@@ -137,4 +126,68 @@
             @endif
         @endif
     </x-glass-card>
+
+    @push('scripts')
+        <!-- Include Quill stylesheet -->
+        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+        <!-- Include the Quill library -->
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                function initQuill(selector, minHeight) {
+                    document.querySelectorAll(selector).forEach(function(textarea) {
+                        const container = document.createElement('div');
+                        container.className = 'quill-editor-container rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm';
+                        container.style.minHeight = minHeight + 'px';
+                        container.style.marginBottom = '4px';
+
+                        textarea.style.display = 'none';
+                        textarea.parentNode.insertBefore(container, textarea.nextSibling);
+
+                        const quill = new Quill(container, {
+                            theme: 'snow',
+                            modules: {
+                                toolbar: [
+                                    ['bold', 'italic', 'underline', 'strike'],
+                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                    ['clean']
+                                ]
+                            }
+                        });
+
+                        quill.clipboard.dangerouslyPasteHTML(textarea.value);
+                        quill.on('text-change', function() {
+                            textarea.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+                        });
+                    });
+                }
+
+                // Create form: compact editor
+                initQuill('.wysiwyg-editor-create', 90);
+                // Edit forms: normal height
+                initQuill('.wysiwyg-editor', 150);
+            });
+        </script>
+        <style>
+            /* Make Quill editor fit the theme perfectly */
+            .quill-editor-container {
+                border-radius: 0.75rem !important;
+                overflow: hidden;
+            }
+            .ql-toolbar.ql-snow {
+                border-top-left-radius: 0.75rem !important;
+                border-top-right-radius: 0.75rem !important;
+                border-color: rgb(226, 232, 240) !important;
+                background-color: #f8fafc;
+            }
+            .ql-container.ql-snow {
+                border-bottom-left-radius: 0.75rem !important;
+                border-bottom-right-radius: 0.75rem !important;
+                border-color: rgb(226, 232, 240) !important;
+                font-family: inherit;
+                font-size: 0.875rem;
+            }
+        </style>
+    @endpush
 </x-shell-layout>

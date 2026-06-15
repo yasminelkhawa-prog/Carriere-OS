@@ -1,6 +1,6 @@
 <x-shell-layout title="TB Recrutement | {{ config('app.name') }}">
     @if($requiresCompanySelection)
-        <div class="p-6">
+        <div>
             <x-empty-state title="TB Recrutement" message="Veuillez sélectionner une entreprise pour gérer les besoins en recrutement." />
         </div>
     @else
@@ -31,7 +31,7 @@
             })->values();
         @endphp
 
-        <div class="space-y-6 p-6" x-data="recruitmentDataTable(@js($needsData))">
+        <div class="space-y-6" x-data="recruitmentDataTable(@js($needsData))">
 
             <!-- Versions archivées -->
             @if($versions && $versions->count() > 0)

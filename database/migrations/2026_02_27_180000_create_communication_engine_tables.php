@@ -57,10 +57,18 @@ return new class extends Migration
             $table->index(['company_id', 'status']);
         });
 
-        DB::statement("ALTER TABLE email_outbox_logs DROP CONSTRAINT IF EXISTS email_outbox_logs_status_check");
-        DB::statement("ALTER TABLE email_outbox_logs ADD CONSTRAINT email_outbox_logs_status_check CHECK (status IN ('queued', 'sent', 'failed'))");
-        DB::statement("ALTER TABLE rejection_drafts DROP CONSTRAINT IF EXISTS rejection_drafts_status_check");
-        DB::statement("ALTER TABLE rejection_drafts ADD CONSTRAINT rejection_drafts_status_check CHECK (status IN ('draft', 'approved', 'sent'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE email_outbox_logs DROP CONSTRAINT IF EXISTS email_outbox_logs_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE email_outbox_logs ADD CONSTRAINT email_outbox_logs_status_check CHECK (status IN ('queued', 'sent', 'failed'))");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE rejection_drafts DROP CONSTRAINT IF EXISTS rejection_drafts_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE rejection_drafts ADD CONSTRAINT rejection_drafts_status_check CHECK (status IN ('draft', 'approved', 'sent'))");
+        }
 
         $companies = DB::table('companies')->pluck('id');
         $now = now();

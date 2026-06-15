@@ -19,9 +19,6 @@
                     {{ $slot }}
                 </div>
             </main>
-            <footer class="border-t border-white/70 bg-white/70 px-4 py-3 text-center text-xs text-slate-600">
-                <p class="font-medium uppercase tracking-[0.18em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
-            </footer>
         </div>
     </body>
 </html>

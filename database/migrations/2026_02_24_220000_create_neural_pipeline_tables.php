@@ -35,8 +35,12 @@ return new class extends Migration
             $table->index(['owner_user_id', 'status']);
         });
 
-        DB::statement("ALTER TABLE application_tasks DROP CONSTRAINT IF EXISTS application_tasks_status_check");
-        DB::statement("ALTER TABLE application_tasks ADD CONSTRAINT application_tasks_status_check CHECK (status IN ('open','done'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE application_tasks DROP CONSTRAINT IF EXISTS application_tasks_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE application_tasks ADD CONSTRAINT application_tasks_status_check CHECK (status IN ('open','done'))");
+        }
     }
 
     public function down(): void

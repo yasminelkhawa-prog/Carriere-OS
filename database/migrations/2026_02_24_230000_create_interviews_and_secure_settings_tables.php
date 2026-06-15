@@ -27,8 +27,12 @@ return new class extends Migration
             $table->index(['application_id', 'scheduled_start_at']);
         });
 
-        DB::statement("ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_status_check");
-        DB::statement("ALTER TABLE interviews ADD CONSTRAINT interviews_status_check CHECK (status IN ('draft','scheduled','completed','cancelled'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE interviews ADD CONSTRAINT interviews_status_check CHECK (status IN ('draft','scheduled','completed','cancelled'))");
+        }
 
         Schema::create('interview_participants', function (Blueprint $table): void {
             $table->uuid('id')->primary();

@@ -36,6 +36,13 @@ class ApplicationObserver
                 ? (string) $application->getOriginal('current_stage_id')
                 : null
         );
+
+        if ($application->wasChanged('current_stage_id') && $application->current_stage_id) {
+            $newStage = \App\Models\JobPipelineStage::find($application->current_stage_id);
+            if ($newStage) {
+                \App\Jobs\ProcessApplicationStageChangeJob::dispatch($application, $newStage);
+            }
+        }
     }
 
     private function syncReferralStatus(Application $application): void

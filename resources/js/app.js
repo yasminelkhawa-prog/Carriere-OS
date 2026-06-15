@@ -517,16 +517,26 @@ const appendCareerAssistantMessage = (messagesContainer, text, type = 'bot') => 
         return;
     }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = type === 'user'
-        ? 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800'
-        : 'rounded-lg border border-aura-200/60 bg-aura-50 px-3 py-2 text-xs text-slate-700';
+    const row = document.createElement('div');
+    row.className = type === 'user'
+        ? 'flex items-start justify-end gap-2'
+        : 'flex items-start gap-2';
 
-    const body = document.createElement('p');
-    body.textContent = text;
-    wrapper.appendChild(body);
+    if (type !== 'user') {
+        const avatar = document.createElement('span');
+        avatar.className = 'flex h-7 w-7 shrink-0 items-center justify-center';
+        avatar.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 28" class="h-7 w-7" aria-hidden="true"><path d="M5 1h22a5 5 0 0 1 5 5v11a5 5 0 0 1-5 5H13l-6 6v-6H5a5 5 0 0 1-5-5V6a5 5 0 0 1 5-5z" fill="#f3f0ff" /><rect x="6" y="6" width="20" height="11" rx="4" fill="#312e81" /><circle cx="13" cy="11.5" r="2.3" fill="#7dd3fc" /><circle cx="19" cy="11.5" r="2.3" fill="#7dd3fc" /></svg>';
+        row.appendChild(avatar);
+    }
 
-    messagesContainer.appendChild(wrapper);
+    const bubble = document.createElement('p');
+    bubble.className = type === 'user'
+        ? 'max-w-[80%] rounded-2xl rounded-tr-sm border border-slate-200 bg-white px-3 py-2 text-xs leading-relaxed text-slate-900 shadow-sm'
+        : 'max-w-[80%] rounded-2xl rounded-bl-sm bg-gradient-to-br from-aura-200 to-sky-200 px-3 py-2 text-xs leading-relaxed text-slate-800 shadow-sm';
+    bubble.textContent = text;
+    row.appendChild(bubble);
+
+    messagesContainer.appendChild(row);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 };
 
@@ -558,9 +568,16 @@ const initCareerApplyAssistant = (node) => {
 
     let prompts = [];
     try {
-        const decodedPrompts = promptsBase64 !== ''
-            ? window.atob(promptsBase64)
-            : '[]';
+        let decodedPrompts = '[]';
+        if (promptsBase64 !== '') {
+            // atob() returns a binary string (Latin-1); we must decode as UTF-8
+            const binaryStr = window.atob(promptsBase64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            decodedPrompts = new TextDecoder('utf-8').decode(bytes);
+        }
         const parsed = JSON.parse(decodedPrompts);
         prompts = Array.isArray(parsed) ? parsed : [];
     } catch (error) {

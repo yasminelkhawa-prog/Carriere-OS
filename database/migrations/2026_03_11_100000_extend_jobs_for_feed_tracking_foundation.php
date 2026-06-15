@@ -71,20 +71,32 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check');
-        DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+        }
 
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_employment_type_check');
-        DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_employment_type_check CHECK (employment_type IN ('full_time', 'part_time', 'contract'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_employment_type_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_employment_type_check CHECK (employment_type IN ('full_time', 'part_time', 'contract'))");
+        }
 
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_salary_range_check');
-        DB::statement(
-            'ALTER TABLE jobs ADD CONSTRAINT jobs_salary_range_check CHECK (
-                (salary_min IS NULL OR salary_min >= 0)
-                AND (salary_max IS NULL OR salary_max >= 0)
-                AND (salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max)
-            )'
-        );
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_salary_range_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            DB::statement(
+                'ALTER TABLE jobs ADD CONSTRAINT jobs_salary_range_check CHECK (
+                    (salary_min IS NULL OR salary_min >= 0)
+                    AND (salary_max IS NULL OR salary_max >= 0)
+                    AND (salary_min IS NULL OR salary_max IS NULL OR salary_min <= salary_max)
+                )'
+            );
+        }
 
         DB::statement('UPDATE jobs SET salary_max = salary_budget_max WHERE salary_max IS NULL AND salary_budget_max IS NOT NULL');
         DB::statement("UPDATE jobs SET employment_type = 'full_time' WHERE employment_type IS NULL");
@@ -96,8 +108,12 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_salary_range_check');
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_employment_type_check');
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_salary_range_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_employment_type_check');
+        }
 
         Schema::table('jobs', function (Blueprint $table): void {
             if (Schema::hasColumn('jobs', 'salary_currency')) {
@@ -137,7 +153,11 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check');
-        DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check');
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+        }
     }
 };

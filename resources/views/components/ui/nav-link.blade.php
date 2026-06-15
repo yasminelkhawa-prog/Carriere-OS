@@ -11,7 +11,7 @@
 @php
 $baseClasses = $compact
     ? 'group portal-menu-item flex items-center gap-2 rounded-xl px-3 py-2 font-medium transition-weightless'
-    : 'group portal-menu-item flex items-center gap-3 rounded-2xl px-4 py-3 font-medium transition-weightless';
+    : 'group portal-menu-item flex items-center gap-4 rounded-2xl px-5 py-3.5 font-medium text-[0.95rem] transition-weightless';
 
 $activeClasses = $compact
     ? 'bg-aura-200 text-aura-900'
@@ -30,7 +30,7 @@ $activeClasses = $compact
         'x-bind:class' => $collapsible && ! $compact ? "leftSidebarCollapsed ? 'justify-center gap-0 px-2 py-3' : ''" : '',
     ]) }}
 >
-    <x-ui.nav-icon :name="$icon" :class="$compact ? 'size-4' : 'size-5'" />
+    <x-ui.nav-icon :name="$icon" :class="$compact ? 'size-4' : 'size-6'" />
     @if($collapsible && ! $compact)
         <span class="truncate" x-cloak x-show="!leftSidebarCollapsed">{{ $label }}</span>
     @else

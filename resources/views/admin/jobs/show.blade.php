@@ -1,4 +1,10 @@
 <x-shell-layout :title="$job->title.' | '.config('app.name')">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.8/dist/trix.css">
+    <script type="text/javascript" src="https://unpkg.com/trix@2.0.8/dist/trix.umd.min.js"></script>
+    <style>
+        trix-toolbar [data-trix-button-group="file-tools"] { display: none; }
+        trix-editor { min-height: 100px !important; }
+    </style>
     <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div class="mb-6 flex items-center justify-between">
             <div>
@@ -33,6 +39,14 @@
             </x-form-field>
             <x-form-field :label="__('jobs.fields.location')" name="location" class="lg:col-span-1">
                 <input type="text" name="location" value="{{ old('location', $job->location) }}" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500">
+            </x-form-field>
+            <x-form-field label="Famille de poste" name="job_family" class="lg:col-span-1">
+                <select name="job_family" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500">
+                    <option value="">Sélectionnez...</option>
+                    @foreach(\App\Models\PsyTest::PROFILES as $profile)
+                        <option value="{{ $profile }}" @selected(old('job_family', $job->job_family) === $profile)>{{ ucfirst($profile) }}</option>
+                    @endforeach
+                </select>
             </x-form-field>
             <x-form-field :label="__('jobs.status')" name="status" class="lg:col-span-1">
                 <select name="status" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500">
@@ -85,7 +99,8 @@
                         <input type="hidden" name="block_type[]" value="overview">
                         <input type="hidden" name="display_order[]" value="1">
                         <x-form-field label="Aperçu du poste">
-                            <textarea name="block_content[]" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Décrivez le rôle en quelques mots...">{{ old('block_content.0', $getContent('overview')) }}</textarea>
+                            <input id="block_overview" type="hidden" name="block_content[]" value="{{ old('block_content.0', $getContent('overview')) }}">
+                            <trix-editor input="block_overview" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Décrivez le rôle en quelques mots..."></trix-editor>
                         </x-form-field>
                     </div>
 
@@ -93,7 +108,8 @@
                         <input type="hidden" name="block_type[]" value="responsibilities">
                         <input type="hidden" name="display_order[]" value="2">
                         <x-form-field label="Missions & Responsabilités">
-                            <textarea name="block_content[]" rows="5" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Quelles seront les missions principales ?">{{ old('block_content.1', $getContent('responsibilities')) }}</textarea>
+                            <input id="block_responsibilities" type="hidden" name="block_content[]" value="{{ old('block_content.1', $getContent('responsibilities')) }}">
+                            <trix-editor input="block_responsibilities" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Quelles seront les missions principales ?"></trix-editor>
                         </x-form-field>
                     </div>
 
@@ -101,23 +117,35 @@
                         <input type="hidden" name="block_type[]" value="requirements">
                         <input type="hidden" name="display_order[]" value="3">
                         <x-form-field label="Profil & Compétences recherchés">
-                            <textarea name="block_content[]" rows="5" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Compétences, expérience, diplômes...">{{ old('block_content.2', $getContent('requirements')) }}</textarea>
+                            <input id="block_requirements" type="hidden" name="block_content[]" value="{{ old('block_content.2', $getContent('requirements')) }}">
+                            <trix-editor input="block_requirements" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Compétences, expérience, diplômes..."></trix-editor>
+                        </x-form-field>
+                    </div>
+
+                    <div>
+                        <input type="hidden" name="block_type[]" value="reporting_line">
+                        <input type="hidden" name="display_order[]" value="4">
+                        <x-form-field label="Rattachement hiérarchique">
+                            <input id="block_reporting_line" type="hidden" name="block_content[]" value="{{ old('block_content.3', $getContent('reporting_line')) }}">
+                            <trix-editor input="block_reporting_line" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Manager, Équipe..."></trix-editor>
                         </x-form-field>
                     </div>
 
                     <div>
                         <input type="hidden" name="block_type[]" value="benefits">
-                        <input type="hidden" name="display_order[]" value="4">
+                        <input type="hidden" name="display_order[]" value="5">
                         <x-form-field label="Avantages">
-                            <textarea name="block_content[]" rows="3" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Tickets restaurant, mutuelle, télétravail...">{{ old('block_content.3', $getContent('benefits')) }}</textarea>
+                            <input id="block_benefits" type="hidden" name="block_content[]" value="{{ old('block_content.4', $getContent('benefits')) }}">
+                            <trix-editor input="block_benefits" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Tickets restaurant, mutuelle, télétravail..."></trix-editor>
                         </x-form-field>
                     </div>
 
                     <div>
                         <input type="hidden" name="block_type[]" value="company_intro">
-                        <input type="hidden" name="display_order[]" value="5">
+                        <input type="hidden" name="display_order[]" value="6">
                         <x-form-field label="À propos de l'entreprise">
-                            <textarea name="block_content[]" rows="4" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Présentation de votre entreprise...">{{ old('block_content.4', $getContent('company_intro')) }}</textarea>
+                            <input id="block_company_intro" type="hidden" name="block_content[]" value="{{ old('block_content.5', $getContent('company_intro')) }}">
+                            <trix-editor input="block_company_intro" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-aura-500 focus:ring-aura-500" placeholder="Présentation de votre entreprise..."></trix-editor>
                         </x-form-field>
                     </div>
 
@@ -467,117 +495,7 @@
                             <p class="mt-1 text-sm text-slate-700">{{ __('jobs.multiposting.description') }}</p>
                         </div>
 
-                        <x-ui.modal
-                            id="multiposting-workflow-modal"
-                            :title="__('jobs.multiposting.bulk.modal_title')"
-                            :initially-open="request()->boolean('open_multiposting_workflow')"
-                        >
-                            <x-slot:trigger>
-                                <button type="button" class="rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700">
-                                    {{ __('jobs.multiposting.bulk.launch') }}
-                                </button>
-                            </x-slot:trigger>
 
-                            <form method="POST"
-                                  action="{{ route('jobs.multiposting.bulk', ['job' => $job, 'company_id' => $selectedCompanyId]) }}"
-                                  x-data="{ selected: [] }"
-                                  class="space-y-4">
-                                @csrf
-                                @if(auth()->user()?->isSuperadmin())
-                                    <input type="hidden" name="company_id" value="{{ $selectedCompanyId }}">
-                                @endif
-
-                                <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-                                    {{ __('jobs.multiposting.bulk.description') }}
-                                </div>
-
-                                <div class="space-y-4">
-                                    @foreach($channelGroups as $deliveryType => $channels)
-                                        <div class="space-y-2">
-                                            <p class="text-xs font-semibold uppercase tracking-wide text-aura-700/85">
-                                                {{ __('jobs.multiposting.delivery_types.'.$deliveryType) }}
-                                            </p>
-
-                                            <div class="space-y-2">
-                                                @foreach($channels as $channel)
-                                                    @php
-                                                        $platform = (string) ($channel['key'] ?? '');
-                                                        $readiness = (array) (($multipostingReadinessByPlatform ?? [])[$platform] ?? []);
-                                                        $isReady = (bool) ($readiness['ready'] ?? true);
-                                                        $posting = $jobPostingsByPlatform->get($platform);
-                                                        $status = (string) ($posting?->status ?? \App\Models\JobPosting::STATUS_DISABLED);
-                                                        $requiresOauth = (bool) ($readiness['requires_oauth'] ?? false);
-                                                    @endphp
-
-                                                    <label class="flex items-start gap-3 rounded-xl border p-3 {{ $isReady ? 'border-slate-200 bg-white' : 'border-danger-200 bg-danger-50/50' }}">
-                                                        <input type="checkbox"
-                                                               name="platforms[]"
-                                                               value="{{ $platform }}"
-                                                               x-model="selected"
-                                                               @disabled(! $isReady)
-                                                               class="mt-1 rounded border-slate-300 text-primary-600 focus:ring-primary-500 disabled:cursor-not-allowed">
-                                                        <span class="flex-1">
-                                                            <span class="flex flex-wrap items-center gap-2">
-                                                                <span class="text-sm font-semibold text-slate-900">{{ $channel['label'] ?? __('jobs.multiposting.platforms.'.$platform) }}</span>
-                                                                <span class="rounded-full border px-2 py-0.5 text-[11px] text-slate-700">
-                                                                    {{ __('jobs.multiposting.statuses.'.$status) }}
-                                                                </span>
-                                                            </span>
-                                                            <span class="mt-1 block text-xs text-slate-600">
-                                                                {{ __('jobs.multiposting.publish_methods.'.((string) ($channel['publish_method'] ?? 'unknown'))) }}
-                                                                •
-                                                                {{ __('jobs.multiposting.auth_methods.'.((string) ($channel['auth_method'] ?? 'unknown'))) }}
-                                                                •
-                                                                {{ __('jobs.multiposting.execution_modes.'.((string) ($channel['execution_mode'] ?? 'unknown'))) }}
-                                                            </span>
-                                                            @if(! $isReady)
-                                                                <span class="mt-1 block text-xs text-danger-800">
-                                                                    {{ $requiresOauth ? __('jobs.multiposting.readiness.oauth_required') : __('jobs.multiposting.readiness.not_ready') }}
-                                                                </span>
-                                                                @if($requiresOauth)
-                                                                    <a href="{{ route('configuration.index', ['company_id' => $selectedCompanyId]) }}" class="mt-2 inline-flex text-xs font-semibold text-danger-900 underline underline-offset-2">
-                                                                        {{ __('jobs.multiposting.readiness.open_configuration') }}
-                                                                    </a>
-                                                                @endif
-                                                            @endif
-                                                        </span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                <div class="rounded-xl border border-slate-200 bg-white p-3">
-                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-600">{{ __('jobs.multiposting.bulk.selected_label') }}</p>
-                                    <p class="mt-1 text-sm text-slate-800" x-text="selected.length ? selected.join(', ') : '{{ __('jobs.multiposting.bulk.none_selected') }}'"></p>
-                                </div>
-
-                                <div class="flex flex-wrap gap-3">
-                                    <button type="submit"
-                                            name="action"
-                                            value="enable"
-                                            :disabled="selected.length === 0"
-                                            class="rounded-xl border border-success-300/60 bg-success-50 px-4 py-2 text-sm font-medium text-success-900 transition hover:bg-success-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
-                                        {{ __('jobs.multiposting.bulk.enable_selected') }}
-                                    </button>
-                                    <button type="submit"
-                                            name="action"
-                                            value="generate"
-                                            :disabled="selected.length === 0"
-                                            class="rounded-xl border border-primary-300/60 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-900 transition hover:bg-primary-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
-                                        {{ __('jobs.multiposting.bulk.generate_selected') }}
-                                    </button>
-                                    <button type="submit"
-                                            name="action"
-                                            value="publish"
-                                            :disabled="selected.length === 0"
-                                            class="rounded-xl bg-success-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-success-700 disabled:cursor-not-allowed disabled:bg-slate-300">
-                                        {{ __('jobs.multiposting.bulk.publish_selected') }}
-                                    </button>
-                                </div>
-                            </form>
-                        </x-ui.modal>
                     </div>
                 </div>
                 @foreach($channelGroups as $deliveryType => $channels)

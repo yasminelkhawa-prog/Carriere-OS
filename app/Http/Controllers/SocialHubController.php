@@ -103,46 +103,32 @@ class SocialHubController extends Controller
         abort_unless($this->canAccessRecruitmentHub($actor, $role), 403);
 
         $validated = $request->validate([
-            'mode' => ['nullable', Rule::in(['standard', 'kudos'])],
-            'type' => ['nullable', Rule::in(SocialPost::types())],
             'visibility' => ['required', Rule::in(SocialPost::visibilities())],
-            'content_text' => ['nullable', 'string', 'max:'.SocialPost::CONTENT_MAX_LENGTH],
-            'media_url' => ['nullable', 'url', 'max:2048'],
-            'related_job_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('jobs', 'id')->where(
-                    static function ($query) use ($companyId): void {
-                        $query->where('company_id', $companyId)
-                            ->where('status', Job::STATUS_PUBLISHED);
-                    }
-                ),
-            ],
-            'poll_question_text' => ['nullable', 'string', 'max:255'],
-            'poll_enabled' => ['nullable', 'boolean'],
-            'kudos_recipient_user_id' => [
-                'nullable',
-                'uuid',
-                Rule::exists('company_memberships', 'user_id')->where(
-                    static function ($query) use ($companyId): void {
-                        $query->where('company_id', $companyId)
-                            ->where('membership_status', CompanyMembership::STATUS_ACTIVE);
-                    }
-                ),
-            ],
-            'kudos_category' => ['nullable', Rule::in(array_keys($this->kudosCategories()))],
-            'kudos_message' => ['nullable', 'string', 'max:'.SocialPost::CONTENT_MAX_LENGTH],
+            'content_text' => ['required', 'string', 'max:'.SocialPost::CONTENT_MAX_LENGTH],
+            'media' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $mode = (string) ($validated['mode'] ?? 'standard');
-        $relatedJobId = isset($validated['related_job_id']) ? (string) $validated['related_job_id'] : null;
         $visibility = (string) $validated['visibility'];
-
-        if ($mode === 'kudos') {
-            $this->storeKudosPost($actor, $companyId, $role, $validated, $visibility);
-        } else {
-            $this->storeStandardPost($actor, $companyId, $role, $validated, $visibility, $relatedJobId);
+        $content = trim((string) $validated['content_text']);
+        $mediaUrl = null;
+        if ($request->hasFile('media')) {
+            $path = $request->file('media')->store('social-posts', 'public');
+            $mediaUrl = \Illuminate\Support\Facades\Storage::url($path);
         }
+
+        SocialPost::withoutGlobalScopes()->create([
+            'company_id' => $companyId,
+            'author_user_id' => (string) $actor->id,
+            'type' => SocialPost::TYPE_WELCOME,
+            'visibility' => $visibility,
+            'content_text' => $content,
+            'media_url' => $mediaUrl !== '' ? $mediaUrl : null,
+            'reactions' => $this->socialHubService->normalizeReactionSummary([]),
+            'related_job_id' => null,
+            'metadata_json' => null,
+            'poll_question_text' => null,
+            'poll_options_json' => null,
+        ]);
 
         return redirect()
             ->route('social-hub.index', $this->companyQuery($request))
@@ -575,27 +561,21 @@ class SocialHubController extends Controller
         $canCompose = ! $isCandidatePortal && $allowedPostTypes !== [];
         $canSendKudos = ! $isCandidatePortal && $this->canCreatePostType($actor, $role, SocialPost::TYPE_KUDOS, null);
 
+        $selectedTab = $request->query('tab');
+
         $posts = SocialPost::withoutGlobalScopes()
             ->with([
                 'author.profile',
                 'relatedJob:id,title,status,company_id',
-                'reactionEntries',
+                'reactionEntries.user.profile',
                 'pollVotes',
             ])
             ->where('company_id', (string) $company->id)
+            ->where('type', SocialPost::TYPE_WELCOME)
             ->when(
                 $isCandidatePortal,
                 fn ($query) => $query
                     ->where('visibility', SocialPost::VISIBILITY_PUBLIC)
-                    ->whereIn('type', $candidateVisibleTypes)
-            )
-            ->when(
-                $filters['post_types'] !== [],
-                fn ($query) => $query->whereIn('type', $filters['post_types'])
-            )
-            ->when(
-                is_string($filters['author_user_id']) && $filters['author_user_id'] !== '',
-                fn ($query) => $query->where('author_user_id', $filters['author_user_id'])
             )
             ->orderByDesc('created_at')
             ->paginate(12)
@@ -605,7 +585,7 @@ class SocialHubController extends Controller
             $post->setAttribute(
                 'reaction_summary',
                 $this->socialHubService->normalizeReactionSummary(
-                    is_array($post->reactions) ? $post->reactions : []
+                     is_array($post->reactions) ? $post->reactions : []
                 )
             );
             $post->setAttribute('poll_summary', $this->pollSummaryForPost($post));
@@ -633,6 +613,7 @@ class SocialHubController extends Controller
             'company' => $company,
             'companies' => $companies,
             'posts' => $posts,
+            'selectedTab' => $selectedTab,
             'authors' => $this->authorOptions((string) $company->id),
             'jobsForLinking' => Job::withoutGlobalScopes()
                 ->where('company_id', (string) $company->id)
@@ -890,27 +871,15 @@ class SocialHubController extends Controller
     {
         if ($user->isSuperadmin()) {
             return [
-                SocialPost::TYPE_ANNOUNCEMENT,
-                SocialPost::TYPE_IDEA,
+                SocialPost::TYPE_WELCOME,
             ];
         }
 
         return match ((string) $role) {
-            CompanyMembership::ROLE_COMPANY_ADMIN => [
-                SocialPost::TYPE_ANNOUNCEMENT,
-                SocialPost::TYPE_IDEA,
-            ],
-            CompanyMembership::ROLE_MANAGER => [
-                SocialPost::TYPE_ANNOUNCEMENT,
-                SocialPost::TYPE_IDEA,
-            ],
+            CompanyMembership::ROLE_COMPANY_ADMIN,
+            CompanyMembership::ROLE_MANAGER,
             CompanyMembership::ROLE_RECRUITER => [
                 SocialPost::TYPE_WELCOME,
-                SocialPost::TYPE_ANNOUNCEMENT,
-                SocialPost::TYPE_IDEA,
-            ],
-            CompanyMembership::ROLE_EMPLOYEE => [
-                SocialPost::TYPE_KUDOS,
             ],
             default => [],
         };
@@ -918,33 +887,11 @@ class SocialHubController extends Controller
 
     private function canCreatePostType(User $user, ?string $role, string $type, ?string $relatedJobId): bool
     {
-        if (! in_array($type, $this->allowedPostTypesFor($user, $role), true)) {
-            return false;
-        }
-
-        if ($type === SocialPost::TYPE_ANNOUNCEMENT && $relatedJobId !== null) {
-            return in_array((string) $role, [
-                CompanyMembership::ROLE_COMPANY_ADMIN,
-                CompanyMembership::ROLE_RECRUITER,
-            ], true) || $user->isSuperadmin();
-        }
-
-        if ($type === SocialPost::TYPE_ANNOUNCEMENT && $relatedJobId === null) {
-            return in_array((string) $role, [
-                CompanyMembership::ROLE_COMPANY_ADMIN,
-                CompanyMembership::ROLE_MANAGER,
-            ], true) || $user->isSuperadmin();
-        }
-
-        if ($type === SocialPost::TYPE_WELCOME) {
-            return (string) $role === CompanyMembership::ROLE_RECRUITER || $user->isSuperadmin();
-        }
-
-        if ($type === SocialPost::TYPE_KUDOS) {
-            return (string) $role === CompanyMembership::ROLE_EMPLOYEE;
-        }
-
-        return true;
+        return $type === SocialPost::TYPE_WELCOME && (in_array((string) $role, [
+            CompanyMembership::ROLE_COMPANY_ADMIN,
+            CompanyMembership::ROLE_MANAGER,
+            CompanyMembership::ROLE_RECRUITER,
+        ], true) || $user->isSuperadmin());
     }
 
     private function canReact(User $user, ?string $role): bool
@@ -1004,6 +951,62 @@ class SocialHubController extends Controller
     /**
      * @return array<string, string>
      */
+    public function storeComment(Request $request, SocialPost $post): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+        $companyId = $this->managedCompanyId($request, true);
+        abort_unless(is_string($companyId) && $companyId !== '', 403);
+
+        $role = $this->activeMembershipRole($actor, $companyId);
+        abort_unless($this->canAccessRecruitmentHub($actor, $role), 403);
+
+        return $this->storeCommentForContext($request, $actor, $post, false, null);
+    }
+
+    public function candidateStoreComment(Request $request, Company $company, SocialPost $post): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        $this->resolveCandidatePortalContext($request, $company, $actor);
+
+        return $this->storeCommentForContext($request, $actor, $post, true, (string) $company->slug);
+    }
+
+    private function storeCommentForContext(
+        Request $request,
+        User $actor,
+        SocialPost $post,
+        bool $isCandidatePortal,
+        ?string $candidateCompanySlug
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'comment_text' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $metadata = $post->metadata_json ?? [];
+        $comments = $metadata['comments'] ?? [];
+        $comments[] = [
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'user_id' => $actor->id,
+            'user_name' => $actor->profile?->full_name ?? $actor->email,
+            'comment_text' => trim((string) $validated['comment_text']),
+            'created_at' => now()->toIso8601String(),
+        ];
+        $metadata['comments'] = $comments;
+        $post->metadata_json = $metadata;
+        $post->save();
+
+        return $this->reactionRedirect(
+            request: $request,
+            isCandidatePortal: $isCandidatePortal,
+            candidateCompanySlug: $candidateCompanySlug,
+            flashKey: 'status',
+            flashMessage: 'Commentaire publié avec succès'
+        );
+    }
+
     private function companyQuery(Request $request): array
     {
         $companyId = (string) $request->input('company_id', $request->query('company_id', ''));

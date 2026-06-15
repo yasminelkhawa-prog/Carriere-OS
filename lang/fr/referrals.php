@@ -3,20 +3,20 @@
 return [
     'not_available' => 'N/A',
     'company_required' => [
-        'title' => 'Selectionner une entreprise',
-        'message' => 'Choisissez une entreprise active pour gerer les parrainages.',
+        'title' => 'Sélectionner une entreprise',
+        'message' => 'Choisissez une entreprise active pour gérer les parrainages.',
     ],
     'create' => [
         'title' => 'Soumettre un parrainage',
-        'heading' => 'Soumission de parrainage employe',
+        'heading' => 'Soumission de parrainage employé',
         'subheading' => 'Partagez les détails du candidat pour une conversion rapide par les recruteurs.',
     ],
     'index' => [
         'title' => 'Parrainages',
         'heading' => 'Suivi des parrainages',
-        'subheading' => 'Suivez la soumission, la conversion et les resultats finaux.',
+        'subheading' => 'Suivez la soumission, la conversion et les résultats finaux.',
         'empty_title' => 'Aucun parrainage',
-        'empty_message' => 'Soumettez un parrainage pour demarrer ce canal.',
+        'empty_message' => 'Soumettez un parrainage pour démarrer ce canal.',
     ],
     'fields' => [
         'candidate_email' => 'Email candidat',
@@ -24,7 +24,7 @@ return [
         'linkedin_url' => 'URL LinkedIn',
         'résumé' => 'CV (Optionnel)',
         'resume_hint' => 'Format : PDF uniquement (max 5Mo).',
-        'job_placeholder' => 'Selectionner poste',
+        'job_placeholder' => 'Sélectionner poste',
     ],
     'filters' => [
         'status' => 'Statut',
@@ -37,8 +37,8 @@ return [
     'status' => [
         'submitted' => 'Soumis',
         'converted' => 'Converti',
-        'hired' => 'Embauche',
-        'rejected' => 'Rejete',
+        'hired' => 'Embauché',
+        'rejected' => 'Rejeté',
     ],
     'columns' => [
         'candidate' => 'Candidat',
@@ -48,7 +48,7 @@ return [
         'application' => 'Candidature',
         'action' => 'Action',
         'linkedin' => 'LinkedIn',
-        'resume_attached' => 'CV attache',
+        'resume_attached' => 'CV attaché',
     ],
     'actions' => [
         'new_referral' => 'Nouveau parrainage',
@@ -61,15 +61,15 @@ return [
     ],
     'validation' => [
         'duplicate_referral' => 'Vous avez déjà soumis cet email candidat.',
-        'cannot_convert_terminal' => 'Ce parrainage est déjà dans un etat terminal.',
-        'already_converted' => 'Ce parrainage est déjà lie à une candidature.',
-        'missing_pipeline' => 'Le poste selectionne n a pas d\'étape non terminale.',
+        'cannot_convert_terminal' => 'Ce parrainage est déjà dans un état terminal.',
+        'already_converted' => 'Ce parrainage est déjà lié à une candidature.',
+        'missing_pipeline' => 'Le poste sélectionné n\'a pas d\'étape non terminale.',
         'duplicate_active_application' => 'Une candidature active existe déjà pour ce candidat et ce poste.',
-        'job_invalid' => 'Le poste selectionne est invalide pour ce parrainage.',
+        'job_invalid' => 'Le poste sélectionné est invalide pour ce parrainage.',
     ],
     'flash' => [
-        'created' => 'Parrainage soumis avec succes.',
+        'created' => 'Parrainage soumis avec succès.',
         'converted' => 'Parrainage converti en candidature.',
-        'convert_failed' => 'La conversion du parrainage a echoue. Verifiez le poste selectionne puis reessayez.',
+        'convert_failed' => 'La conversion du parrainage a échoué. Vérifiez le poste sélectionné puis réessayez.',
     ],
 ];

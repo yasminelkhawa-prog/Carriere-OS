@@ -114,7 +114,7 @@ return [
         'portal_message' => 'Use the portal after sign-in or email verification to track status, complete assessments, view company updates, and share confidential feedback when eligible.',
         'portal_steps' => [
             'status' => 'Track application status',
-            'assessments' => 'Complete video/SJT tasks',
+            'assessments' => 'Complete video/Technical Test tasks',
             'social_hub' => 'View Smart Feed updates',
             'feedback' => 'Submit feedback after eligible interviews',
         ],

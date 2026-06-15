@@ -28,7 +28,50 @@ class Candidate extends Model
         'email',
         'phone',
         'location',
+        'years_experience',
+        'last_company',
+        'main_skills',
+        'diploma_type',
+        'school_type',
+        'school_name',
+        'school_country',
+        'notification_preferences_json',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'notification_preferences_json' => 'array',
+        ];
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public static function defaultNotificationPreferences(): array
+    {
+        return [
+            'job_match' => true,
+            'status_change' => true,
+            'interview_invite' => true,
+            'interview_reminder' => true,
+            'recruiter_message' => true,
+        ];
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function notificationPreferences(): array
+    {
+        return array_merge(
+            self::defaultNotificationPreferences(),
+            (array) ($this->notification_preferences_json ?? [])
+        );
+    }
 
     public function company(): BelongsTo
     {

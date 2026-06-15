@@ -41,8 +41,12 @@ return new class extends Migration
             $table->index('created_at');
         });
 
-        DB::statement("ALTER TABLE applications DROP CONSTRAINT IF EXISTS applications_status_check");
-        DB::statement("ALTER TABLE applications ADD CONSTRAINT applications_status_check CHECK (status IN ('active', 'withdrawn', 'hired', 'rejected'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE applications DROP CONSTRAINT IF EXISTS applications_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE applications ADD CONSTRAINT applications_status_check CHECK (status IN ('active', 'withdrawn', 'hired', 'rejected'))");
+        }
 
         Schema::create('candidate_documents', function (Blueprint $table): void {
             $table->uuid('id')->primary();
@@ -58,8 +62,12 @@ return new class extends Migration
             $table->index('candidate_id');
         });
 
-        DB::statement("ALTER TABLE candidate_documents DROP CONSTRAINT IF EXISTS candidate_documents_document_type_check");
-        DB::statement("ALTER TABLE candidate_documents ADD CONSTRAINT candidate_documents_document_type_check CHECK (document_type IN ('resume', 'portfolio', 'other'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE candidate_documents DROP CONSTRAINT IF EXISTS candidate_documents_document_type_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE candidate_documents ADD CONSTRAINT candidate_documents_document_type_check CHECK (document_type IN ('resume', 'portfolio', 'other'))");
+        }
 
         Schema::create('cv_parsing_results', function (Blueprint $table): void {
             $table->uuid('id')->primary();

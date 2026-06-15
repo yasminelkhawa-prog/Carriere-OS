@@ -23,7 +23,9 @@ return new class extends Migration
         });
 
         if (DB::getDriverName() === 'pgsql') {
-            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_email_unique');
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_company_id_email_unique');
+            }
         } else {
             Schema::table('users', function (Blueprint $table): void {
                 // MySQL requires a dedicated index for the foreign key once the composite unique key is dropped.

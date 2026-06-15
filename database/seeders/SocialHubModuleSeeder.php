@@ -110,24 +110,15 @@ class SocialHubModuleSeeder extends Seeder
                 [
                     'company_id' => (string) $company->id,
                     'author_user_id' => (string) $users['employee']->id,
-                    'type' => SocialPost::TYPE_KUDOS,
+                    'type' => SocialPost::TYPE_WELCOME,
                 ],
                 [
-                    'content_text' => 'Thank you for stepping in late and saving the release plan.',
+                    'content_text' => "Meet Thomas, our new DevOps Engineer!\n\nFun facts:\n- Favorite movie: The Matrix\n- Coffee or tea: Tea\n- Hidden talent: Knows standard shorthand",
                     'visibility' => SocialPost::VISIBILITY_TEAM_ONLY,
                     'media_url' => null,
                     'reactions' => app(SocialHubService::class)->normalizeReactionSummary([]),
                     'related_job_id' => null,
-                    'metadata_json' => [
-                        'kudos' => [
-                            'sender_user_id' => (string) $users['employee']->id,
-                            'recipient_user_id' => (string) $users['recruiter']->id,
-                            'recipient_name' => 'Social Hub Recruiter',
-                            'category_key' => 'mvp',
-                            'category_label' => 'The MVP - for saving a project',
-                            'icon' => "\u{1F3C6}",
-                        ],
-                    ],
+                    'metadata_json' => null,
                     'poll_question_text' => null,
                     'poll_options_json' => null,
                 ]
@@ -136,19 +127,15 @@ class SocialHubModuleSeeder extends Seeder
                 [
                     'company_id' => (string) $company->id,
                     'author_user_id' => (string) $users['admin']->id,
-                    'type' => SocialPost::TYPE_ANNOUNCEMENT,
+                    'type' => SocialPost::TYPE_WELCOME,
                 ],
                 [
-                    'content_text' => 'CEO update: we are expanding the AI team this quarter. Internal mobility applications are now open.',
+                    'content_text' => "Lilly\n\nWe are thrilled to welcome Lilly to the team! 🚀 She joins us as our new Communication Intern at the Ait Baha plant. We're excited to see the fresh ideas and creative energy she will bring to the Com' department. Welcome aboard, Lilly! 👏✨ #WelcomeOnBoard #NewInters #Communications #AitBaha",
                     'visibility' => SocialPost::VISIBILITY_TEAM_ONLY,
-                    'media_url' => null,
+                    'media_url' => 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
                     'reactions' => app(SocialHubService::class)->normalizeReactionSummary([]),
-                    'related_job_id' => (string) $job->id,
-                    'metadata_json' => [
-                        'cta' => [
-                            'label' => __('social_hub.feed.view_roles'),
-                        ],
-                    ],
+                    'related_job_id' => null,
+                    'metadata_json' => null,
                     'poll_question_text' => null,
                     'poll_options_json' => null,
                 ]
@@ -156,12 +143,12 @@ class SocialHubModuleSeeder extends Seeder
         ];
 
         $reactionBlueprints = [
-            ['post' => 'welcome', 'type' => SocialReaction::TYPE_WAVE, 'user' => 'employee'],
+            ['post' => 'welcome', 'type' => SocialReaction::TYPE_LIKE, 'user' => 'employee'],
             ['post' => 'welcome', 'type' => SocialReaction::TYPE_HEART, 'user' => 'manager'],
-            ['post' => 'kudos', 'type' => SocialReaction::TYPE_CLAP, 'user' => 'admin'],
-            ['post' => 'kudos', 'type' => SocialReaction::TYPE_FIRE, 'user' => 'manager'],
-            ['post' => 'announcement', 'type' => SocialReaction::TYPE_FIRE, 'user' => 'recruiter'],
-            ['post' => 'announcement', 'type' => SocialReaction::TYPE_CLAP, 'user' => 'employee'],
+            ['post' => 'kudos', 'type' => SocialReaction::TYPE_ROCKET, 'user' => 'admin'],
+            ['post' => 'kudos', 'type' => SocialReaction::TYPE_LIKE, 'user' => 'manager'],
+            ['post' => 'announcement', 'type' => SocialReaction::TYPE_LIKE, 'user' => 'recruiter'],
+            ['post' => 'announcement', 'type' => SocialReaction::TYPE_ROCKET, 'user' => 'employee'],
         ];
 
         foreach ($reactionBlueprints as $blueprint) {

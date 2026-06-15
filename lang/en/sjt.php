@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Situational Judgment Test',
+    'title' => 'Technical Test',
     'subtitle' => 'Complete each scenario with your own written response.',
     'scenario_badge' => 'Scenario',
     'response_title' => 'The Action',
@@ -13,11 +13,11 @@ return [
     'guide_bot_blocked' => 'Candidate Guide is disabled on this assessment page.',
     'processing_state' => 'AI scoring is processing.',
     'processing_hint' => 'If processing fails, keep your response and retry scoring.',
-    'score_label' => 'Situational Judgment Score: :score',
+    'score_label' => 'Technical Test Score: :score',
     'empty_applications_title' => 'No applications available',
     'empty_applications_message' => 'Apply to a job first to start this assessment.',
     'empty_scenarios_title' => 'No active scenarios',
-    'empty_scenarios_message' => 'No SJT scenario is currently active for this application.',
+    'empty_scenarios_message' => 'No technical test scenario is currently active for this application.',
     'actions' => [
         'load' => 'Load Assessment',
         'save_draft' => 'Save Draft',
@@ -62,20 +62,20 @@ return [
         'unknown_job' => 'Unknown job',
     ],
     'portal' => [
-        'title' => 'SJT Assessment',
-        'subtitle' => 'Complete situational judgment scenarios assigned to your applications.',
+        'title' => 'Technical Test Assessment',
+        'subtitle' => 'Complete technical test scenarios assigned to your applications.',
         'status_not_started' => 'Not started',
         'status_in_progress' => 'In progress',
         'status_scored' => 'Scored',
         'counts' => ':answered / :total answered',
         'scores' => ':scored scored',
-        'open_action' => 'Open SJT',
+        'open_action' => 'Open Technical Test',
     ],
     'admin' => [
-        'title' => 'SJT Scenario Manager',
-        'subtitle' => 'Create and manage SJT scenarios for candidate assessments.',
+        'title' => 'Technical Test Scenario Manager',
+        'subtitle' => 'Create and manage technical test scenarios for candidate assessments.',
         'empty_title' => 'No scenarios found',
-        'empty_message' => 'Create your first SJT scenario to enable candidate assessments.',
+        'empty_message' => 'Create your first technical test scenario to enable candidate assessments.',
         'fields' => [
             'title' => 'Scenario Title',
             'job' => 'Job Scope',
@@ -104,9 +104,9 @@ return [
             'responses' => ':count responses',
         ],
         'messages' => [
-            'created' => 'SJT scenario created.',
-            'updated' => 'SJT scenario updated.',
-            'deleted' => 'SJT scenario deleted.',
+            'created' => 'Technical test scenario created.',
+            'updated' => 'Technical test scenario updated.',
+            'deleted' => 'Technical test scenario deleted.',
         ],
     ],
 ];

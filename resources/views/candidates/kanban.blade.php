@@ -4,39 +4,54 @@
         x-init="init()"
         class="space-y-4"
     >
-        <x-glass-card :title="__('kanban.title')" :subtitle="__('kanban.subtitle')">
+        <!-- Floating Alerts (Fixed top right to avoid layout shift) -->
+        <div class="fixed right-6 top-6 z-50 flex flex-col gap-3">
             @if(session('status'))
-                <x-toast-alert type="success">{{ session('status') }}</x-toast-alert>
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition.opacity.duration.500ms class="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/95 px-5 py-3.5 shadow-xl backdrop-blur-md">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200/50">
+                        <svg class="h-5 w-5 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span class="text-sm font-bold text-emerald-800">{{ session('status') }}</span>
+                </div>
             @endif
             @if(session('error'))
-                <x-toast-alert type="warning">{{ session('error') }}</x-toast-alert>
+                <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 6000)" x-transition.opacity.duration.500ms class="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50/95 px-5 py-3.5 shadow-xl backdrop-blur-md">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-rose-200/50">
+                        <svg class="h-5 w-5 text-rose-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <span class="text-sm font-bold text-rose-800">{{ session('error') }}</span>
+                </div>
             @endif
+        </div>
 
-            @if($requiresCompanySelection)
-                <x-empty-state :title="__('kanban.select_company_title')" :message="__('kanban.select_company_message')" />
-            @else
-                <form method="GET" action="{{ route('candidates.kanban') }}" class="grid gap-3 md:grid-cols-4">
-                    @if(auth()->user()->isSuperadmin())
-                        <x-form-field :label="__('kanban.filters.company')" name="company_id">
-                            <select name="company_id" data-placeholder="{{ __('kanban.filters.company_placeholder') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm" onchange="this.form.submit()">
+        <!-- Header Section -->
+        <div class="mb-6 flex flex-col justify-end gap-5 md:flex-row md:items-end">
+            
+            <div class="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center ml-auto">
+                @if($requiresCompanySelection)
+                    <div class="text-sm text-amber-600 font-medium bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+                        {{ __('kanban.select_company_message') }}
+                    </div>
+                @else
+                    <form method="GET" action="{{ route('candidates.kanban') }}" class="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+                        @if(auth()->user()->isSuperadmin())
+                            <select name="company_id" data-placeholder="{{ __('kanban.filters.company_placeholder') }}" class="w-full sm:w-48 rounded-xl border border-slate-200/60 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white focus:border-aura-500 focus:ring focus:ring-aura-500/20" onchange="this.form.submit()">
                                 <option value="">{{ __('kanban.filters.company_placeholder') }}</option>
                                 @foreach($companies as $company)
                                     <option value="{{ $company->id }}" @selected((string) $selectedCompanyId === (string) $company->id)>{{ $company->name }}</option>
                                 @endforeach
                             </select>
-                        </x-form-field>
-                    @endif
-                    <x-form-field :label="__('kanban.filters.job')" name="job_id">
-                        <select name="job_id" data-placeholder="{{ __('kanban.filters.job_placeholder') }}" class="w-full rounded-xl border border-aura-200/40 bg-white/80 px-3 py-2 text-sm" onchange="this.form.submit()">
+                        @endif
+                        <select name="job_id" data-placeholder="{{ __('kanban.filters.job_placeholder') }}" class="w-full sm:w-64 rounded-xl border border-slate-200/60 bg-white/60 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:bg-white focus:border-aura-500 focus:ring focus:ring-aura-500/20" onchange="this.form.submit()">
                             <option value="">{{ __('kanban.filters.job_placeholder') }}</option>
                             @foreach($jobs as $job)
                                 <option value="{{ $job->id }}" @selected((string) optional($selectedJob)->id === (string) $job->id)>{{ $job->title }}</option>
                             @endforeach
                         </select>
-                    </x-form-field>
-                </form>
-            @endif
-        </x-glass-card>
+                    </form>
+                @endif
+            </div>
+        </div>
 
         @if(! $requiresCompanySelection && $pipelineBlocked)
             <x-glass-card :title="__('kanban.pipeline.misconfigured_title')" :subtitle="__('kanban.pipeline.misconfigured_subtitle')">
@@ -55,103 +70,143 @@
         @endif
 
         @if(! $requiresCompanySelection && ! $pipelineBlocked && $boardStages->isNotEmpty())
-            <div class="pb-2">
-                <div class="grid grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] gap-4">
-                    @foreach($boardStages as $stage)
-                        <section
-                            class="min-w-0 rounded-2xl border border-white/70 bg-white/60 p-3 shadow-[0_20px_40px_-30px_rgba(100,103,242,0.35)] backdrop-blur-2xl"
-                            data-stage-id="{{ $stage->target_stage_id ?? $stage->id }}"
-                            data-stage-key="{{ $stage->stage_key }}"
-                            data-stage-terminal="{{ $stage->is_terminal ? '1' : '0' }}"
-                            @dragover.prevent="$el.classList.add('ring-2','ring-aura-300')"
-                            @dragleave="$el.classList.remove('ring-2','ring-aura-300')"
-                            @drop.prevent="dropOnStage($event, $el)"
-                        >
-                            <header class="mb-3 flex items-center justify-between">
-                                <h3 class="text-sm font-semibold text-slate-900">{{ $stage->stage_label }}</h3>
-                                @if($stage->is_terminal)
-                                    <x-badge variant="warning">{{ __('kanban.board.terminal_short') }}</x-badge>
-                                @endif
-                            </header>
-                            <div class="space-y-2" x-data="{ expanded: false }">
-                                @php $cards = $cardsByStage[(string) $stage->id] ?? collect(); @endphp
-                                @forelse($cards as $card)
-                                    @php
-                                        $blind = \App\Http\Controllers\CandidateWorkspaceController::shouldMaskIdentity(
-                                            $card->job,
-                                            (string) ($stage->stage_key ?? ''),
-                                            (string) ($stage->stage_label ?? '')
-                                        );
-                                        $maskedIdentifier = \App\Http\Controllers\CandidateWorkspaceController::maskedCandidateIdentifier((string) $card->id);
-                                        $name = $blind
-                                            ? __('candidates.detail.masked_identifier_value', ['identifier' => $maskedIdentifier])
-                                            : (string) optional($card->candidate)->full_name;
+            <!-- Kanban Container (Columns flex to fit screen, items-stretch to equal height) -->
+            <div class="flex w-full items-stretch gap-4 pb-4 px-1" style="min-height: calc(100vh - 180px);">
+                @foreach($boardStages as $stage)
+                    @php 
+                        $cards = $cardsByStage[(string) $stage->id] ?? collect(); 
+                        $stageColors = ['bg-slate-50/50', 'bg-blue-50/50', 'bg-indigo-50/50', 'bg-purple-50/50', 'bg-emerald-50/50', 'bg-rose-50/50'];
+                        $stageColor = $stageColors[$loop->index % count($stageColors)];
+                        
+                        $iconColors = ['text-slate-500', 'text-blue-500', 'text-indigo-500', 'text-purple-500', 'text-emerald-500', 'text-rose-500'];
+                        $iconColor = $iconColors[$loop->index % count($iconColors)];
 
-                                        $lastEvent = $card->activityEvents->first();
-                                        $xaiReason = trim((string) ($card->rejectionDraft?->xai_reason_text ?? $card->scoring?->xai_summary ?? ''));
-                                        $fallbackReason = $xaiReason !== '' ? $xaiReason : __('candidates.detail.not_available');
-                                        $rejectionSubject = trim((string) ($card->rejectionDraft?->draft_subject
-                                            ?? __('kanban.mail.rejection_subject', ['job' => (string) ($card->job?->title ?? __('candidates.detail.not_available'))])));
-                                        $rejectionBody = trim((string) ($card->rejectionDraft?->draft_body
-                                            ?? __('kanban.rejection.default_draft', [
-                                                'job' => (string) ($card->job?->title ?? __('candidates.detail.not_available')),
-                                                'reason' => $fallbackReason,
-                                                'name' => $name,
-                                                'company' => (string) ($card->company?->name ?? 'notre entreprise'),
-                                            ])));
-                                    @endphp
-                                    <article
-                                        @if($loop->index >= 3)
-                                            x-show="expanded"
-                                            x-cloak
-                                        @endif
-                                        draggable="true"
-                                        class="cursor-grab rounded-xl border border-slate-200 bg-white/90 p-3 transition-weightless hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing"
-                                        data-application-id="{{ $card->id }}"
-                                        data-from-stage-id="{{ $card->current_stage_id }}"
-                                        data-candidate-name="{{ $name }}"
-                                        data-job-title="{{ (string) ($card->job?->title ?? '') }}"
-                                        data-xai-reason="{{ $xaiReason }}"
-                                        data-rejection-subject="{{ $rejectionSubject }}"
-                                        data-rejection-body="{{ $rejectionBody }}"
-                                        @dragstart="startDrag($event, $el)"
-                                    >
-                                        <div class="flex items-start justify-between gap-2">
-                                            <p class="text-sm font-semibold text-slate-900">{{ $name }}</p>
-                                            @php
-                                                $cardStatusVariant = match ((string) $card->status) {
-                                                    'hired' => 'success',
-                                                    'rejected', 'withdrawn' => 'danger',
-                                                    default => 'pending',
-                                                };
-                                            @endphp
-                                            <x-badge :variant="$cardStatusVariant">{{ __('candidates.list.status.'.$card->status) }}</x-badge>
-                                        </div>
-                                        @if($blind)
-                                            <p class="mt-1 text-[11px] text-slate-500">{{ __('candidates.detail.blind_mode') }}</p>
-                                        @endif
-                                        <p class="mt-1 text-xs text-slate-600">{{ $card->job?->title }}</p>
-
-
-                                    </article>
-                                @empty
-                                    <div class="rounded-xl border border-dashed border-slate-200 bg-white/50 p-3 text-xs text-slate-600">
-                                        {{ __('kanban.board.empty_stage') }}
-                                    </div>
-                                @endforelse
-
-                                @if($cards->count() > 3)
-                                    <button 
-                                        type="button" 
-                                        @click="expanded = !expanded" 
-                                        class="mt-2 w-full rounded-lg bg-white/50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-weightless hover:bg-white/80"
-                                        x-text="expanded ? 'Voir moins' : 'Voir plus (' + ({{ $cards->count() }} - 3) + ' autres)'"
-                                    >Voir plus</button>
-                                @endif
+                        $stageKeyLower = strtolower($stage->stage_key ?? $stage->stage_label);
+                        $iconSvg = match(true) {
+                            str_contains($stageKeyLower, 'appl') || str_contains($stageKeyLower, 'nouveau') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />',
+                            str_contains($stageKeyLower, 'screen') || str_contains($stageKeyLower, 'qualif') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />',
+                            str_contains($stageKeyLower, 'interv') || str_contains($stageKeyLower, 'entretien') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />',
+                            str_contains($stageKeyLower, 'offer') || str_contains($stageKeyLower, 'offre') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />',
+                            str_contains($stageKeyLower, 'hire') || str_contains($stageKeyLower, 'embauch') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />',
+                            str_contains($stageKeyLower, 'reject') || str_contains($stageKeyLower, 'refus') => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />',
+                            default => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />'
+                        };
+                    @endphp
+                    
+                    <section
+                        class="flex flex-1 min-w-0 flex-col rounded-3xl border border-slate-200/60 {{ $stageColor }} p-3 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] backdrop-blur-xl transition-all duration-300"
+                        data-stage-id="{{ $stage->target_stage_id ?? $stage->id }}"
+                        data-stage-key="{{ $stage->stage_key }}"
+                        data-stage-terminal="{{ $stage->is_terminal ? '1' : '0' }}"
+                        @dragover.prevent="$el.classList.add('ring-2','ring-aura-400','shadow-lg','scale-[1.01]')"
+                        @dragleave="$el.classList.remove('ring-2','ring-aura-400','shadow-lg','scale-[1.01]')"
+                        @drop.prevent="dropOnStage($event, $el)"
+                    >
+                        <header class="mb-4 mt-1 px-1 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="h-5 w-5 {{ $iconColor }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">{!! $iconSvg !!}</svg>
+                                <h3 class="truncate text-[15px] font-bold text-slate-800">{{ $stage->stage_label }}</h3>
                             </div>
-                        </section>
-                    @endforeach
-                </div>
+                            <div class="flex h-6 min-w-[24px] items-center justify-center rounded-full bg-white px-2 text-[11px] font-black text-slate-600 shadow-sm">
+                                {{ $cards->count() }}
+                            </div>
+                        </header>
+                        
+                        <style>
+                            .hide-scroll::-webkit-scrollbar { display: none; }
+                            .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+                        </style>
+                        <div class="flex flex-1 flex-col gap-4 overflow-y-auto hide-scroll pb-2 px-0.5" x-data="{ expanded: false }">
+                            @forelse($cards as $card)
+                                @php
+                                    $blind = \App\Http\Controllers\CandidateWorkspaceController::shouldMaskIdentity(
+                                        $card->job,
+                                        (string) ($stage->stage_key ?? ''),
+                                        (string) ($stage->stage_label ?? '')
+                                    );
+                                    $maskedIdentifier = \App\Http\Controllers\CandidateWorkspaceController::maskedCandidateIdentifier((string) $card->id);
+                                    $name = $blind
+                                        ? __('candidates.detail.masked_identifier_value', ['identifier' => $maskedIdentifier])
+                                        : (string) optional($card->candidate)->full_name;
+
+                                    $lastEvent = $card->activityEvents->first();
+                                    $xaiReason = trim((string) ($card->rejectionDraft?->xai_reason_text ?? $card->scoring?->xai_summary ?? ''));
+                                    $fallbackReason = $xaiReason !== '' ? $xaiReason : __('candidates.detail.not_available');
+                                    $rejectionSubject = trim((string) ($card->rejectionDraft?->draft_subject
+                                        ?? __('kanban.mail.rejection_subject', ['job' => (string) ($card->job?->title ?? __('candidates.detail.not_available'))])));
+                                    $rejectionBody = trim((string) ($card->rejectionDraft?->draft_body
+                                        ?? __('kanban.rejection.default_draft', [
+                                            'job' => (string) ($card->job?->title ?? __('candidates.detail.not_available')),
+                                            'reason' => $fallbackReason,
+                                            'name' => $name,
+                                            'company' => (string) ($card->company?->name ?? 'notre entreprise'),
+                                        ])));
+                                    
+                                    $initials = collect(explode(' ', $name))->map(fn($w) => strtoupper(substr($w, 0, 1)))->take(2)->join('');
+                                @endphp
+                                <article
+                                    @if($loop->index >= 10)
+                                        x-show="expanded"
+                                        x-cloak
+                                    @endif
+                                    draggable="true"
+                                    class="group relative flex cursor-grab flex-col rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:border-aura-300 hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.1)] active:cursor-grabbing"
+                                    data-application-id="{{ $card->id }}"
+                                    data-from-stage-id="{{ $card->current_stage_id }}"
+                                    data-candidate-name="{{ $name }}"
+                                    data-job-title="{{ (string) ($card->job?->title ?? '') }}"
+                                    data-xai-reason="{{ $xaiReason }}"
+                                    data-rejection-subject="{{ $rejectionSubject }}"
+                                    data-rejection-body="{{ $rejectionBody }}"
+                                    @dragstart="startDrag($event, $el)"
+                                >
+                                    <!-- Header Strip (Like Notion icon + title) -->
+                                    <div class="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3">
+                                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-slate-800 text-[9px] font-bold text-white shadow-sm">
+                                            {{ $initials }}
+                                        </div>
+                                        <span class="text-xs font-semibold text-slate-700">Candidate</span>
+                                        
+                                        @if($blind)
+                                            <div class="ml-auto flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-500">
+                                                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                                                BLIND
+                                            </div>
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- Body (Main task info) -->
+                                    <div class="mb-4 flex flex-col">
+                                        <span class="mb-1 text-[11px] font-medium text-slate-500">Application for:</span>
+                                        <h4 class="text-[15px] font-bold leading-snug text-slate-800 transition-colors group-hover:text-aura-600">{{ $name }}</h4>
+                                        <span class="mt-0.5 line-clamp-2 text-xs font-medium text-slate-500">{{ $card->job?->title }}</span>
+                                    </div>
+
+                                    <!-- Divider & Footer -->
+                                    <div class="mt-auto border-t border-slate-100 pt-3">
+                                        <p class="text-[13px] font-bold text-slate-800">{{ $card->created_at->format('l, d M') }}</p>
+                                        <p class="mt-0.5 text-[11px] font-medium text-slate-500">
+                                            {{ $card->created_at->format('H:i') }} | {{ $card->created_at->diffForHumans(null, true, true) }}
+                                        </p>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="flex h-full min-h-[8rem] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300/60 bg-white/30 p-4 text-center">
+                                    <span class="text-xs font-bold text-slate-400">{{ __('kanban.board.empty_stage') }}</span>
+                                </div>
+                            @endforelse
+
+                            @if($cards->count() > 10)
+                                <button 
+                                    type="button" 
+                                    @click="expanded = !expanded" 
+                                    class="mt-2 w-full rounded-xl bg-white/80 px-3 py-2.5 text-xs font-bold text-slate-600 transition-all hover:bg-white hover:text-aura-600 hover:shadow-sm"
+                                    x-text="expanded ? 'Voir moins' : 'Voir plus (' + ({{ $cards->count() }} - 10) + ' autres)'"
+                                ></button>
+                            @endif
+                        </div>
+                    </section>
+                @endforeach
             </div>
         @endif
 

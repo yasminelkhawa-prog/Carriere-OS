@@ -15,7 +15,6 @@
         <div class="min-h-screen lg:flex" x-data="{ sidebarOpen: false }">
             <aside class="hidden w-72 border-r border-white/70 bg-white/45 backdrop-blur-2xl lg:flex lg:flex-col">
                 <div class="border-b border-white/70 px-6 py-5">
-                    <p class="text-xs uppercase tracking-[0.35em] text-aura-700/80">{{ __('ui.brand.tagline') }}</p>
                     <h1 class="mt-2 text-2xl font-semibold text-slate-900">{{ config('app.name') }}</h1>
                     <p class="mt-2 text-sm text-slate-700">{{ __('ui.brand.subtitle') }}</p>
                 </div>
@@ -55,7 +54,6 @@
                     <button type="button" class="mb-5 rounded-xl border border-aura-300/40 bg-white/80 px-3 py-1.5 text-xs uppercase tracking-wider text-slate-900 transition-weightless hover:bg-white" @click="sidebarOpen = false">
                         {{ __('ui.nav.close') }}
                     </button>
-                    <p class="text-xs uppercase tracking-[0.35em] text-aura-700/80">{{ __('ui.brand.tagline') }}</p>
                     <h1 class="mt-2 text-xl font-semibold text-slate-900">{{ config('app.name') }}</h1>
                     <nav class="mt-6 space-y-1 text-sm">
                         <a
@@ -89,9 +87,6 @@
                     </div>
                 </main>
 
-                <footer class="border-t border-white/70 bg-white/70 px-4 py-3 text-center text-xs text-slate-600 sm:px-8">
-                    <p class="font-medium uppercase tracking-[0.18em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
-                </footer>
             </div>
         </div>
     </body>

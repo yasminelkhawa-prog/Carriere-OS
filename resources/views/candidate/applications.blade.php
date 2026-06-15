@@ -10,17 +10,19 @@
             <x-toast-alert type="warning">{{ $errors->first() }}</x-toast-alert>
         @endif
 
-        <x-glass-card :title="__('candidate_portal.applications.title')" :subtitle="__('candidate_portal.applications.subtitle')">
-            @include('candidate.partials.applications-list', [
-                'company' => $company,
-                'applications' => $applications,
-                'nextSteps' => $nextSteps,
-                'hiredFlowApplications' => $hiredFlowApplications,
-                'reverseFeedbackEligibility' => $reverseFeedbackEligibility,
-                'statusTrackers' => $statusTrackers,
-                'xaiInsights' => $xaiInsights,
-            ])
-        </x-glass-card>
+        <div class="mb-4">
+            <h1 class="text-2xl font-bold text-slate-900">{{ __('candidate_portal.applications.title') }}</h1>
+            <p class="text-slate-600">{{ __('candidate_portal.applications.subtitle') }}</p>
+        </div>
+
+        @include('candidate.partials.applications-list', [
+            'company' => $company,
+            'applications' => $applications,
+            'nextSteps' => $nextSteps,
+            'hiredFlowApplications' => $hiredFlowApplications,
+            'reverseFeedbackEligibility' => $reverseFeedbackEligibility,
+            'statusTrackers' => $statusTrackers,
+        ])
 
         @if(($strategyLabBriefs ?? collect())->isNotEmpty())
             @include('candidate.partials.strategy-lab-list', ['company' => $company, 'strategyLabBriefs' => $strategyLabBriefs])

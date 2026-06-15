@@ -414,7 +414,7 @@ $statutPostes = $kpis['statutPostes'] ?? ['total'=>0,'pas_encore'=>0,'en_cours'=
 @endphp
 
 <div class="db-wrap">
-    <h1 class="db-title">Dashboard RH — Cimenterie</h1>
+    <h1 class="db-title">Dashboard RH — {{ \App\Models\Company::find(session('active_company_id'))?->name ?? 'Safari' }}</h1>
 
     {{-- ====== 4 KPI STATUS CARDS (Synchro TB Recrutement) ====== --}}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1.25rem">
@@ -463,7 +463,7 @@ $statutPostes = $kpis['statutPostes'] ?? ['total'=>0,'pas_encore'=>0,'en_cours'=
         {{-- ===================== GENRE ===================== --}}
         <div class="db-card span-1">
             <div class="db-card-title">Répartition Genre</div>
-            <div class="db-card-sub">Total : {{ $genderStats['total'] }} postes</div>
+            <div class="db-card-sub">Total : {{ $genderStats['total'] }} clôtures</div>
             <div class="gender-row">
                 {{-- FEMME --}}
                 <div class="gender-item">

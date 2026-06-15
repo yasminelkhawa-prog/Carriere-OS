@@ -74,18 +74,18 @@ class JobController extends Controller
         }
 
         $totalNeedsCount = \App\Models\RecruitmentNeed::where('company_id', $companyId)->count();
-        $totalJobsCount = \App\Models\Job::withoutGlobalScopes()->where('company_id', $companyId)->count();
-        $notYetLaunchedCount = \App\Models\RecruitmentNeed::where('company_id', $companyId)
-            ->where('status', 'Pas encore lancé')
-            ->count();
-        
-        $activeJobsCount = \App\Models\RecruitmentNeed::where('company_id', $companyId)
-            ->where('status', 'En cours')
-            ->count();
+        // Count the actual jobs by their own status so the cards stay in sync with the
+        // job list (draft = pas encore lancé, published = en cours, archived = clôturé).
+        $jobStatusCounts = \App\Models\Job::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
 
-        $closedJobsCount = \App\Models\RecruitmentNeed::where('company_id', $companyId)
-            ->where('status', 'Clôturé')
-            ->count();
+        $totalJobsCount = (int) $jobStatusCounts->sum();
+        $notYetLaunchedCount = (int) $jobStatusCounts->get(\App\Models\Job::STATUS_DRAFT, 0);
+        $activeJobsCount = (int) $jobStatusCounts->get(\App\Models\Job::STATUS_PUBLISHED, 0);
+        $closedJobsCount = (int) $jobStatusCounts->get(\App\Models\Job::STATUS_ARCHIVED, 0);
 
         $baseQuery = Job::withoutGlobalScopes()->where('company_id', $companyId);
 
@@ -100,6 +100,35 @@ class JobController extends Controller
             ->orderByDesc('created_at')
             ->paginate(20)
             ->withQueryString();
+
+        $jobs->getCollection()->transform(function ($job) {
+            $lastStage = $job->pipelineStages->last();
+            if ($lastStage && $lastStage->applications_count > 0) {
+                $job->hired_candidates = \App\Models\Application::withoutGlobalScopes()
+                    ->where('job_id', $job->id)
+                    ->where('current_stage_id', $lastStage->id)
+                    ->with('candidate:id,full_name,email')
+                    ->get()
+                    ->map(function ($app) {
+                        $nameParts = array_filter(explode(' ', trim((string) $app->candidate?->full_name)));
+                        $initials = count($nameParts) > 0 ? strtoupper(substr($nameParts[0], 0, 1)) : '?';
+                        if (count($nameParts) > 1) {
+                            $initials .= strtoupper(substr(end($nameParts), 0, 1));
+                        }
+
+                        return [
+                            'id' => $app->candidate?->id,
+                            'full_name' => $app->candidate?->full_name ?? 'Inconnu',
+                            'email' => $app->candidate?->email ?? '',
+                            'application_id' => $app->id,
+                            'initials' => $initials,
+                        ];
+                    });
+            } else {
+                $job->hired_candidates = [];
+            }
+            return $job;
+        });
 
         $totalApps = $jobs->sum('applications_count');
         $hiredApps = $jobs->sum(function($job) {
@@ -160,7 +189,7 @@ class JobController extends Controller
         $blocks = $request->input('blocks', []);
         $rows = [];
         $order = 1;
-        foreach (['overview', 'responsibilities', 'requirements', 'benefits', 'company_intro'] as $type) {
+        foreach (['overview', 'responsibilities', 'requirements', 'benefits', 'reporting_line', 'company_intro'] as $type) {
             $content = trim((string) ($blocks[$type] ?? ''));
             if ($content !== '') {
                 $rows[] = [
@@ -668,6 +697,7 @@ class JobController extends Controller
             'location_country' => ['nullable', 'string', 'max:255'],
             'location_postal_code' => ['nullable', 'string', 'max:32'],
             'employment_type' => ['nullable', Rule::in(Job::employmentTypes())],
+            'job_family' => ['nullable', 'string', Rule::in(\App\Models\PsyTest::PROFILES)],
             'status' => ['required', Rule::in(Job::statuses())],
             'blind_mode_active' => ['sometimes', 'boolean'],
             'salary_min' => ['nullable', 'integer', 'min:0'],
@@ -709,6 +739,7 @@ class JobController extends Controller
             'location_country' => $this->trimmedOrNull($validated['location_country'] ?? null),
             'location_postal_code' => $this->trimmedOrNull($validated['location_postal_code'] ?? null),
             'employment_type' => $this->trimmedOrNull($validated['employment_type'] ?? null) ?? Job::EMPLOYMENT_FULL_TIME,
+            'job_family' => $this->trimmedOrNull($validated['job_family'] ?? null),
             'status' => $validated['status'],
             'blind_mode_active' => (bool) ($validated['blind_mode_active'] ?? false),
             'salary_min' => $salaryMin,
@@ -814,3 +845,4 @@ class JobController extends Controller
         ]));
     }
 }
+

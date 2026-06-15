@@ -24,6 +24,14 @@ class AuditLogger
         $actor ??= Auth::user();
         $request ??= request();
         $companyId ??= session('active_company_id');
+
+        if ($companyId !== null && !\App\Models\Company::where('id', $companyId)->exists()) {
+            $companyId = null;
+            if (function_exists('session')) {
+                session()->forget('active_company_id');
+            }
+        }
+
         if ($companyId === null && $entityType === 'company' && $entityId !== null) {
             $companyId = $entityId;
         }

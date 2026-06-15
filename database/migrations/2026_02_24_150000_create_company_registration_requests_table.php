@@ -23,8 +23,12 @@ return new class extends Migration
             $table->index(['status', 'created_at']);
         });
 
-        DB::statement("ALTER TABLE company_registration_requests DROP CONSTRAINT IF EXISTS company_registration_requests_status_check");
-        DB::statement("ALTER TABLE company_registration_requests ADD CONSTRAINT company_registration_requests_status_check CHECK (status IN ('pending', 'approved', 'rejected'))");
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE company_registration_requests DROP CONSTRAINT IF EXISTS company_registration_requests_status_check");
+        }
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE company_registration_requests ADD CONSTRAINT company_registration_requests_status_check CHECK (status IN ('pending', 'approved', 'rejected'))");
+        }
     }
 
     public function down(): void

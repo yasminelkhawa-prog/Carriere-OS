@@ -1,14 +1,21 @@
 <?php
 
 return [
-    'title' => 'Communication Engine',
-    'subtitle' => 'Manage bilingual templates, trigger sending, and monitor outbox delivery logs.',
+    'title' => 'Email Configuration',
+    'subtitle' => 'Configure automated template emails, check their triggers, and monitor logs.',
     'templates' => [
         'application_acknowledgement' => 'Application Acknowledgement',
         'application_portal_verification' => 'Application Portal Verification',
         'interview_confirmation' => 'Interview Confirmation',
         'onboarding_welcome_after_signing' => 'Onboarding Welcome After Signing',
         'rejection_decision' => 'Rejection Decision',
+    ],
+    'triggers' => [
+        'application_acknowledgement' => 'Sent automatically when a candidate submits their job application.',
+        'application_portal_verification' => 'Sent when a candidate requests an email verification link to sign into their portal.',
+        'interview_confirmation' => 'Sent automatically to confirm date, time, and link when an interview is scheduled.',
+        'onboarding_welcome_after_signing' => 'Sent immediately to a hired candidate once they sign their onboarding contract.',
+        'rejection_decision' => 'Sent to candidates who are rejected (manually triggered by moving them to the rejected stage).',
     ],
     'manager' => [
         'title' => 'Template Manager',

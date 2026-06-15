@@ -166,6 +166,46 @@ class CandidateCvParsingPipeline
             $resumePdf['sha256'],
         ]));
 
+        $cachePath = 'cv_cache/' . $resumePdf['sha256'] . '.json';
+        if (Storage::disk('local')->exists($cachePath)) {
+            $cachedJson = Storage::disk('local')->get($cachePath);
+            $parsedOutput = json_decode((string) $cachedJson, true);
+
+            if (is_array($parsedOutput)) {
+                $request = AiRequest::withoutGlobalScopes()->create([
+                    'company_id' => $companyId,
+                    'request_type' => 'cv_parsing',
+                    'input_hash' => hash('sha256', 'cached_' . $parseSignature),
+                    'status' => AiRequest::STATUS_SUCCEEDED,
+                    'model_name' => 'precomputed-cache',
+                    'prompt_version' => self::PARSER_VERSION,
+                    'request_payload' => [
+                        'candidate_id' => $candidateId,
+                        'application_id' => $applicationId,
+                        'job_id' => $jobId,
+                        'resume_document_id' => (string) $resumeDocument->id,
+                        'source_document_sha256' => $resumePdf['sha256'],
+                        'parser_version' => self::PARSER_VERSION,
+                        'parse_trigger' => trim($trigger) !== '' ? trim($trigger) : 'cv_upload',
+                        'parse_signature' => $parseSignature,
+                    ],
+                    'response_payload' => [
+                        'mode' => 'json_schema',
+                        'output' => $parsedOutput,
+                        'attempts' => [['status' => 'cached']],
+                    ],
+                    'started_at' => now(),
+                    'finished_at' => now(),
+                    'created_at' => now(),
+                ]);
+
+                // Immediately trigger the success side effects to save the data
+                app(\App\Services\Ai\AiRequestService::class)->persistCvParsingResult($request, $parsedOutput);
+
+                return $request;
+            }
+        }
+
         if ($this->hasLiveOrSucceededRequest($companyId, $parseSignature)) {
             return null;
         }

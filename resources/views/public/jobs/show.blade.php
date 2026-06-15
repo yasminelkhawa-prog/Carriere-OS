@@ -7,8 +7,8 @@
         <script type="application/ld+json">{!! json_encode($jobPostingSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
     @endif
 
-    <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <article class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm">
+    <section class="grid gap-6 lg:grid-cols-3">
+        <article class="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-sm lg:col-span-2">
             <p class="text-xs uppercase tracking-[0.2em] text-aura-700/80">{{ $company->name }}</p>
             <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{{ $job->title }}</h1>
             <p class="mt-2 text-sm text-slate-700">{{ $job->location ?: __('public_site.jobs.location_tbd') }}</p>
@@ -42,7 +42,7 @@
             </div>
         </article>
 
-        <aside class="space-y-4">
+        <aside class="space-y-4 lg:col-span-1">
             <section class="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-sm">
                 <h2 class="text-lg font-semibold text-slate-900">{{ __('public_site.jobs.apply_card_title') }}</h2>
                 <p class="mt-2 text-sm text-slate-600">{{ __('public_site.jobs.apply_card_subtitle') }}</p>

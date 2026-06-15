@@ -191,7 +191,11 @@ class CommunicationEngineService
         $mode = Str::lower(trim((string) config('communication.outbox_dispatch', 'queue')));
 
         if ($mode === 'sync') {
-            SendEmailOutboxJob::dispatchSync($logId);
+            try {
+                SendEmailOutboxJob::dispatchSync($logId);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send synchronous email in CommunicationEngineService: " . $e->getMessage());
+            }
             return;
         }
 

@@ -19,9 +19,8 @@
                 $onboardingTasks = $application->onboardingTasks ?? collect();
                 $nextStep = (string) (($nextSteps ?? collect())->get((string) $application->id, __('candidate_portal.applications.next_step_default')));
                 $statusTracker = (array) (($statusTrackers ?? collect())->get((string) $application->id, []));
-                $xaiInsight = (array) (($xaiInsights ?? collect())->get((string) $application->id, []));
             @endphp
-            <section class="rounded-2xl border border-white/70 bg-white/70 p-5">
+            <x-glass-card>
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <p class="text-xs uppercase tracking-[0.24em] text-aura-700/85">{{ $application->job?->department?->name ?? __('career.list.no_department') }}</p>
@@ -32,7 +31,7 @@
                     <x-badge>{{ __('candidates.list.status.'.$application->status) }}</x-badge>
                 </div>
 
-                @include('candidate.partials.transparency-insights', ['application' => $application, 'statusTracker' => $statusTracker, 'xaiInsight' => $xaiInsight])
+                @include('candidate.partials.transparency-insights', ['application' => $application, 'statusTracker' => $statusTracker])
 
                 @if($isHired)
                     <div class="mt-4 grid gap-3 xl:grid-cols-2">
@@ -120,7 +119,7 @@
                         </form>
                     @endif
                 @endif
-            </section>
+            </x-glass-card>
         @endforeach
     </div>
 @endif

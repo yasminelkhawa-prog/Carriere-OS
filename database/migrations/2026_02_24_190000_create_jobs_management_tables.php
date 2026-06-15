@@ -43,8 +43,12 @@ return new class extends Migration
                 $table->index(['company_id', 'status']);
             });
 
-            DB::statement("ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check");
-            DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_status_check");
+            }
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+    DB::statement("ALTER TABLE jobs ADD CONSTRAINT jobs_status_check CHECK (status IN ('draft', 'published', 'archived'))");
+            }
         }
 
         if (! Schema::hasTable('job_description_blocks')) {

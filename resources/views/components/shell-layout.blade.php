@@ -1,5 +1,6 @@
 @props([
     'title' => null,
+    'fullWidth' => false,
 ])
 
 <!DOCTYPE html>
@@ -23,7 +24,7 @@
                 leftSidebarCollapsedWidthPx: 0,
                 leftSidebarResizing: false,
                 rightSidebarOpen: true,
-                rightSidebarEnabled: @js(request()->routeIs('home')),
+                rightSidebarEnabled: true,
                 isXlViewport: false,
                 toasts: [],
                 clampLeftSidebarWidth(value) {
@@ -59,11 +60,11 @@
                         if (savedLeftSidebarWidth !== null && savedLeftSidebarWidth !== '') {
                             this.leftSidebarWidthPx = this.clampLeftSidebarWidth(savedLeftSidebarWidth);
                         }
-                        this.rightSidebarOpen = savedRightSidebar === null ? true : savedRightSidebar === '1';
+                        this.rightSidebarOpen = savedRightSidebar === null ? false : savedRightSidebar === '1';
                     } catch (error) {
                         this.leftSidebarCollapsed = false;
                         this.leftSidebarWidthPx = 320;
-                        this.rightSidebarOpen = true;
+                        this.rightSidebarOpen = false;
                     }
 
                     if (!this.rightSidebarEnabled) {
@@ -179,6 +180,7 @@
                         src="{{ asset('images/numa-logo-clean.png') }}"
                         alt="{{ config('app.name') }} logo"
                         class="h-9 w-auto object-contain"
+                        style="height: 36px; width: auto;"
                         loading="eager"
                         decoding="async"
                     >
@@ -228,9 +230,6 @@
                             $candidateSocialRoutePatterns = [
                                 'candidate.social-hub.*',
                             ];
-                            $candidateAccountRoutePatterns = [
-                                'candidate.account',
-                            ];
                             $candidateAssessmentsRoutePatterns = [
                                 'candidate.assessments.*',
                                 'candidate.video-stories*',
@@ -240,21 +239,18 @@
                             <x-ui.nav-link :href="route('platform.console')" :label="__('ui.nav.platform_console')" icon="platform_console" compact :active="request()->routeIs('platform.console')" @click="sidebarOpen = false" />
                             <x-ui.nav-link :href="route('platform.company-approvals')" :label="__('ui.nav.company_approvals')" icon="company_approvals" compact :active="request()->routeIs('platform.company-approvals*')" @click="sidebarOpen = false" />
                             <x-ui.nav-link :href="route('superadmin.contact-inquiries.index')" :label="__('ui.nav.contact_inquiries')" icon="contact_inquiries" compact :active="request()->routeIs('superadmin.contact-inquiries*')" @click="sidebarOpen = false" />
-                            <x-ui.nav-link :href="route('platform.ai-diagnostics')" :label="__('ui.nav.ai_diagnostics')" icon="ai_diagnostics" compact :active="request()->routeIs('platform.ai-diagnostics*')" @click="sidebarOpen = false" />
                         @else
                             @if($mobileIsCandidateRole)
                                 @if($mobileActiveCompanySlug)
                                     <x-ui.nav-link :href="route('candidate.portal', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.candidate_dashboard')" icon="overview" compact :active="request()->routeIs(...$candidateDashboardRoutePatterns)" @click="sidebarOpen = false" />
                                     <x-ui.nav-link :href="route('candidate.applications', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.candidate_applications')" icon="candidates" compact :active="request()->routeIs(...$candidateApplicationsRoutePatterns)" @click="sidebarOpen = false" />
-                                    <x-ui.nav-link :href="route('candidate.updates', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.candidate_updates')" icon="contact_inquiries" compact :active="request()->routeIs(...$candidateUpdatesRoutePatterns)" @click="sidebarOpen = false" />
+
                                     <x-ui.nav-link :href="route('candidate.faq', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.faqs')" icon="faqs" compact :active="request()->routeIs(...$candidateFaqRoutePatterns)" @click="sidebarOpen = false" />
                                     <x-ui.nav-link :href="route('candidate.social-hub.index', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.social_hub')" icon="social_hub" compact :active="request()->routeIs(...$candidateSocialRoutePatterns)" @click="sidebarOpen = false" />
+                                    <x-ui.nav-link :href="route('candidate.account', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.profile')" icon="profile" compact :active="request()->routeIs('candidate.account*', 'candidate.profile*', 'candidate.notification-preferences*', 'candidate.locale*')" @click="sidebarOpen = false" />
                                 @endif
                                 @if(auth()->user()->can('access-candidate-assessments'))
                                     <x-ui.nav-link :href="route('candidate.assessments.sjt')" :label="__('ui.nav.assessments')" icon="assessments" compact :active="request()->routeIs(...$candidateAssessmentsRoutePatterns)" @click="sidebarOpen = false" />
-                                @endif
-                                @if($mobileActiveCompanySlug)
-                                    <x-ui.nav-link :href="route('candidate.account', ['company' => $mobileActiveCompanySlug])" :label="__('ui.nav.candidate_account')" icon="profile" compact :active="request()->routeIs(...$candidateAccountRoutePatterns)" @click="sidebarOpen = false" />
                                 @endif
                             @else
                                 <x-ui.nav-link :href="route('home')" :label="__('ui.nav.overview')" icon="overview" compact :active="request()->routeIs('home')" :dot="$mobileOverviewDot" @click="sidebarOpen = false" />
@@ -264,24 +260,19 @@
                                 <x-ui.nav-link :href="route('candidates.index')" :label="__('ui.nav.candidates')" icon="candidates" compact :active="request()->routeIs('candidates.index')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('candidates.kanban')" :label="__('ui.nav.candidates_kanban')" icon="candidates_kanban" compact :active="request()->routeIs('candidates.kanban*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('interviews.index')" :label="__('ui.nav.interviews')" icon="interviews" compact :active="request()->routeIs('interviews.*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('referrals.index')" :label="__('ui.nav.referrals')" icon="referrals" compact :active="request()->routeIs('referrals.*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('social-hub.index')" :label="__('ui.nav.social_hub')" icon="social_hub" compact :active="request()->routeIs('social-hub.*', 'candidate.social-hub.*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('analytics.index')" :label="__('ui.nav.analytics')" icon="analytics" compact :active="request()->routeIs('analytics.index', 'analytics.alerts.*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('analytics.fairness')" :label="__('ui.nav.fairness')" icon="fairness" compact :active="request()->routeIs('analytics.fairness*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('configuration.index')" :label="__('ui.nav.configuration')" icon="configuration" compact :active="request()->routeIs('configuration.*')" @click="sidebarOpen = false" />
                             @endif
                         @endif
-                        <x-ui.nav-link :href="route('profile.edit')" :label="__('ui.nav.profile')" icon="profile" compact :active="request()->routeIs('profile.*')" @click="sidebarOpen = false" />
+                        @if(! $mobileIsCandidateRole)
+                            <x-ui.nav-link :href="route('profile.edit')" :label="__('ui.nav.profile')" icon="profile" compact :active="request()->routeIs('profile.*')" @click="sidebarOpen = false" />
+                        @endif
                         @if(! $mobileIsCandidateRole)
                             @can('viewAny', \App\Models\User::class)
                                 <x-ui.nav-link :href="route('admin.users.index')" :label="__('ui.nav.user_management')" icon="user_management" compact :active="request()->routeIs('admin.users.*')" @click="sidebarOpen = false" />
                             @endcan
                             @can('access-admin-pages')
-                                <x-ui.nav-link :href="route('admin.ai-diagnostics.index')" :label="__('ui.nav.ai_diagnostics')" icon="ai_diagnostics" compact :active="request()->routeIs('admin.ai-diagnostics.*', 'platform.ai-diagnostics*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('admin.email-templates.index')" :label="__('ui.nav.communication_engine')" icon="communication_engine" compact :active="request()->routeIs('admin.email-templates.*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('admin.video-configs.index')" :label="__('ui.nav.video_configs')" icon="video_configs" compact :active="request()->routeIs('admin.video-configs.*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('admin.sjt-scenarios.index')" :label="__('ui.nav.sjt_scenarios')" icon="sjt_scenarios" compact :active="request()->routeIs('admin.sjt-scenarios.*')" @click="sidebarOpen = false" />
-                                <x-ui.nav-link :href="route('admin.health.index')" :label="__('ui.nav.health_checklist')" icon="health_checklist" compact :active="request()->routeIs('admin.health.*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('admin.departments.index')" :label="__('ui.nav.departments')" icon="departments" compact :active="request()->routeIs('admin.departments.*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('admin.values.index')" :label="__('ui.nav.company_values')" icon="company_values" compact :active="request()->routeIs('admin.values.*')" @click="sidebarOpen = false" />
                                 <x-ui.nav-link :href="route('admin.faqs.index')" :label="__('ui.nav.faqs')" icon="faqs" compact :active="request()->routeIs('admin.faqs.*')" @click="sidebarOpen = false" />
@@ -323,9 +314,9 @@
             >
                 <x-top-bar />
 
-                <div class="flex flex-1 gap-4 px-4 pb-6 sm:px-6 lg:px-8">
-                    <main class="min-w-0 flex-1 overflow-y-auto pt-6">
-                        <div class="mx-auto w-full max-w-[1480px]">
+                <div class="flex flex-1 gap-4 {{ $fullWidth ? 'px-2 pb-2 sm:px-4 lg:px-6' : 'px-4 pb-6 sm:px-6 lg:px-8' }}">
+                    <main class="min-w-0 flex-1 overflow-y-auto {{ $fullWidth ? 'pt-2 lg:pt-4' : 'pt-6' }}">
+                        <div class="mx-auto w-full {{ $fullWidth ? 'max-w-none' : 'max-w-[1480px]' }}">
                             {{ $slot }}
                         </div>
                     </main>
@@ -348,9 +339,6 @@
                     </aside>
                 </div>
 
-                <footer class="border-t border-white/70 bg-white/70 px-4 py-3 text-center text-xs text-slate-600 sm:px-6 lg:px-8">
-                    <p class="font-medium uppercase tracking-[0.18em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
-                </footer>
             </div>
 
             <div class="fixed inset-x-0 bottom-4 z-[60] space-y-2 px-4 sm:right-4 sm:left-auto sm:w-[26rem]">
@@ -359,6 +347,9 @@
                 </template>
             </div>
         </div>
+        @can('access-admin-pages')
+            <x-admin-chatbot />
+        @endcan
         
         @stack('scripts')
     </body>

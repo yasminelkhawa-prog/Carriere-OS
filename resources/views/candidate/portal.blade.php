@@ -87,26 +87,11 @@
                         {{ __('candidate_portal.dashboard.subtitle', ['company' => $company->name]) }}
                     </p>
 
-                    <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="mt-5 max-w-sm">
                         <article class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
                             <p class="text-xs uppercase tracking-[0.2em] text-white/70">{{ __('candidate_portal.dashboard.metrics.applications') }}</p>
                             <p class="mt-2 text-3xl font-semibold">{{ ($applications ?? collect())->count() }}</p>
                             <p class="mt-1 text-xs text-white/70">{{ __('candidate_portal.dashboard.metrics.active', ['count' => $activeApplications]) }}</p>
-                        </article>
-                        <article class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
-                            <p class="text-xs uppercase tracking-[0.2em] text-white/70">{{ __('candidate_portal.dashboard.metrics.assessments') }}</p>
-                            <p class="mt-2 text-3xl font-semibold">{{ $pendingAssessmentCount }}</p>
-                            <p class="mt-1 text-xs text-white/70">{{ __('candidate_portal.dashboard.metrics.completed', ['count' => $completedAssessmentCount]) }}</p>
-                        </article>
-                        <article class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
-                            <p class="text-xs uppercase tracking-[0.2em] text-white/70">{{ __('candidate_portal.dashboard.metrics.onboarding') }}</p>
-                            <p class="mt-2 text-3xl font-semibold">{{ $pendingOnboardingTasks }}</p>
-                            <p class="mt-1 text-xs text-white/70">{{ __('candidate_portal.dashboard.metrics.hired', ['count' => $hiredApplications]) }}</p>
-                        </article>
-                        <article class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
-                            <p class="text-xs uppercase tracking-[0.2em] text-white/70">{{ __('candidate_portal.dashboard.metrics.decisions') }}</p>
-                            <p class="mt-2 text-3xl font-semibold">{{ $closedApplications }}</p>
-                            <p class="mt-1 text-xs text-white/70">{{ __('candidate_portal.dashboard.metrics.feedback', ['count' => $feedbackReadyApplication ? 1 : 0]) }}</p>
                         </article>
                     </div>
 
@@ -135,30 +120,7 @@
                             </span>
                         </div>
 
-                        @if($upcomingInterview)
-                            <div class="mt-4 rounded-2xl border border-white/15 bg-slate-950/20 p-4">
-                                <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.next_interview') }}</p>
-                                <p class="mt-2 text-lg font-semibold">{{ data_get($upcomingInterview, 'application.job.title', __('sjt.messages.unknown_job')) }}</p>
-                                <p class="mt-1 text-sm text-white/80">
-                                    {{ data_get($upcomingInterview, 'interview.scheduled_start_at')?->format('M j, Y g:i A') }}
-                                </p>
-                                <p class="mt-1 text-xs text-white/65">
-                                    {{ data_get($upcomingInterview, 'interview.location_type') ?: __('candidate_portal.applications.not_scheduled') }}
-                                </p>
-                            </div>
-                        @else
-                            <div class="mt-4 rounded-2xl border border-dashed border-white/20 bg-slate-950/15 p-4 text-sm text-white/80">
-                                {{ __('candidate_portal.dashboard.focus.no_interview') }}
-                            </div>
-                        @endif
-
                         <div class="mt-4 space-y-3">
-                            <div class="rounded-2xl border border-white/15 bg-slate-950/15 p-4">
-                                <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.next_step') }}</p>
-                                <p class="mt-2 text-sm text-white/85">
-                                    {{ $dashboardPrimaryApplication ? (($nextSteps ?? collect())->get((string) $dashboardPrimaryApplication->id, __('candidate_portal.applications.next_step_default'))) : __('candidate_portal.dashboard.focus.no_active_step') }}
-                                </p>
-                            </div>
                             <div class="rounded-2xl border border-white/15 bg-slate-950/15 p-4">
                                 <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.status') }}</p>
                                 <p class="mt-2 text-sm text-white/85">
@@ -585,7 +547,6 @@
                             $onboardingTasks = $application->onboardingTasks ?? collect();
                             $nextStep = (string) (($nextSteps ?? collect())->get((string) $application->id, __('candidate_portal.applications.next_step_default')));
                             $statusTracker = (array) (($statusTrackers ?? collect())->get((string) $application->id, []));
-                            $xaiInsight = (array) (($xaiInsights ?? collect())->get((string) $application->id, []));
                         @endphp
                         <section class="rounded-2xl border border-white/70 bg-white/70 p-5">
                             <div class="flex flex-wrap items-start justify-between gap-3">
@@ -614,7 +575,6 @@
                             @include('candidate.partials.transparency-insights', [
                                 'application' => $application,
                                 'statusTracker' => $statusTracker,
-                                'xaiInsight' => $xaiInsight,
                             ])
 
                             @if($isHired)
@@ -1461,39 +1421,107 @@
                     return div.innerHTML;
                 };
 
-                const stateClassMap = {
-                    completed: {
-                        row: 'border-success-200/70 bg-success-50/70',
-                        dot: 'bg-success-500',
-                    },
-                    current: {
-                        row: 'border-primary-200/70 bg-white',
-                        dot: 'bg-primary-500',
-                    },
-                    pending: {
-                        row: 'border-slate-200/80 bg-white/80',
-                        dot: 'bg-slate-300',
-                    },
+                const VALID_STATES = ['completed', 'current', 'rejected', 'pending'];
+
+                const dotClassMap = {
+                    completed: 'bg-success-500 shadow-[0_0_0_4px_rgba(34,197,94,0.15)]',
+                    current: 'bg-primary-500 shadow-[0_0_0_4px_rgba(124,58,237,0.18)]',
+                    rejected: 'bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.15)]',
+                    pending: 'bg-white border-2 border-slate-200',
                 };
 
-                const renderStep = function (step) {
-                    const state = ['completed', 'current', 'pending'].includes(step?.state) ? step.state : 'pending';
-                    const classes = stateClassMap[state] || stateClassMap.pending;
+                const badgeClassMap = {
+                    completed: 'border-success-200 bg-success-50 text-success-700',
+                    current: 'border-primary-200 bg-primary-50 text-primary-700',
+                    rejected: 'border-rose-200 bg-rose-50 text-rose-700',
+                    pending: 'border-slate-200 bg-slate-50 text-slate-500',
+                };
+
+                const liquidStopsMap = {
+                    current: ['from-success-400', 'to-primary-400'],
+                    completed: ['from-success-400', 'to-success-400'],
+                    rejected: ['from-success-400', 'to-rose-400'],
+                    pending: ['from-success-400', 'to-slate-300'],
+                };
+
+                const stepIconHtml = function (state, stepNumber) {
+                    switch (state) {
+                        case 'completed':
+                            return '<svg class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" /></svg>';
+                        case 'rejected':
+                            return '<svg class="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L8.94 10l-4.72 4.72a.75.75 0 1 0 1.06 1.06L10 11.06l4.72 4.72a.75.75 0 1 0 1.06-1.06L11.06 10l4.72-4.72a.75.75 0 0 0-1.06-1.06L10 8.94 5.28 4.22Z" clip-rule="evenodd" /></svg>';
+                        case 'current':
+                            return '<span class="h-2.5 w-2.5 rounded-full bg-white"></span>';
+                        default:
+                            return `<span class="text-[11px] font-bold text-slate-400">${stepNumber}</span>`;
+                    }
+                };
+
+                const computeProgress = function (steps) {
+                    const total = steps.length;
+                    const completedCount = steps.filter((step) => step?.state === 'completed').length;
+                    const hasCurrent = steps.some((step) => step?.state === 'current');
+                    const rejectedIndex = steps.findIndex((step) => step?.state === 'rejected');
+                    const isRejected = rejectedIndex !== -1;
+                    const progressUnits = isRejected
+                        ? (rejectedIndex + 1) * 2
+                        : (completedCount * 2) + (hasCurrent ? 1 : 0);
+                    const progressDenominator = total > 1 ? (total - 1) * 2 : 1;
+                    let percent = total > 1
+                        ? Math.round((progressUnits / progressDenominator) * 100)
+                        : (completedCount > 0 ? 100 : 0);
+                    percent = Math.max(0, Math.min(100, percent));
+
+                    return { percent, isRejected };
+                };
+
+                const renderStep = function (step, index, steps) {
+                    const state = VALID_STATES.includes(step?.state) ? step.state : 'pending';
                     const label = escapeHtml(step?.label || '');
                     const detail = escapeHtml(step?.detail || '');
                     const stateLabel = escapeHtml(step?.state_label || '');
                     const key = escapeHtml(step?.key || '');
+                    const dotClasses = dotClassMap[state] || dotClassMap.pending;
+                    const badgeClasses = badgeClassMap[state] || badgeClassMap.pending;
+
+                    const isLast = index === steps.length - 1;
+                    const nextState = !isLast && VALID_STATES.includes(steps[index + 1]?.state) ? steps[index + 1].state : 'pending';
+                    const liquidStops = liquidStopsMap[nextState] || liquidStopsMap.pending;
+                    const lineFilled = state === 'completed';
+
+                    const verticalLine = !isLast ? `
+                        <div class="absolute left-[15px] top-[32px] bottom-[-12px] w-[3px] lg:hidden bg-slate-200 rounded-full overflow-hidden">
+                            ${lineFilled ? `<div class="h-full w-full bg-gradient-to-b ${liquidStops[0]} ${liquidStops[1]}"></div>` : ''}
+                        </div>
+                    ` : '';
+
+                    const horizontalLine = !isLast ? `
+                        <div class="hidden lg:block absolute left-1/2 top-[15px] w-full h-[3px] bg-slate-200 rounded-full overflow-hidden z-0">
+                            ${lineFilled ? `<div class="h-full w-full bg-gradient-to-r ${liquidStops[0]} ${liquidStops[1]}"></div>` : ''}
+                        </div>
+                    ` : '';
+
+                    const pingRing = state === 'current'
+                        ? '<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary-400 opacity-50" aria-hidden="true"></span>'
+                        : '';
 
                     return `
-                        <li class="rounded-lg border p-2.5 ${classes.row}" data-status-step-row data-status-step-key="${key}" data-status-state="${state}">
-                            <div class="flex items-start gap-2">
-                                <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full ${classes.dot}" aria-hidden="true"></span>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <p class="text-xs font-semibold text-slate-900" data-status-step-label>${label}</p>
-                                        <span class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700" data-status-step-state>${stateLabel}</span>
+                        <li class="relative flex-1 lg:min-w-0" data-status-step-row data-status-step-key="${key}" data-status-state="${state}">
+                            ${verticalLine}
+                            ${horizontalLine}
+                            <div class="flex lg:flex-col items-start lg:items-center gap-4 lg:gap-3">
+                                <div class="relative z-10 flex h-8 w-8 shrink-0 scale-110 items-center justify-center rounded-full ring-4 ring-white ${dotClasses}">
+                                    ${pingRing}
+                                    <span class="relative">${stepIconHtml(state, index + 1)}</span>
+                                </div>
+                                <div class="min-w-0 flex-1 pb-6 lg:pb-0 lg:px-2 pt-0.5 lg:pt-1.5 lg:text-center">
+                                    <div class="flex flex-col gap-1.5 lg:items-center">
+                                        <p class="text-[13px] font-semibold text-slate-900" data-status-step-label>${label}</p>
+                                        <div>
+                                            <span class="inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeClasses}" data-status-step-state>${stateLabel}</span>
+                                        </div>
                                     </div>
-                                    <p class="mt-1 text-xs text-slate-600" data-status-step-detail>${detail}</p>
+                                    <p class="mt-2 text-[11px] leading-relaxed text-slate-600 lg:mx-auto lg:max-w-[140px]" data-status-step-detail>${detail}</p>
                                 </div>
                             </div>
                         </li>
@@ -1513,10 +1541,30 @@
                             return;
                         }
 
+                        const steps = Array.isArray(tracker?.steps) ? tracker.steps : [];
+
                         const list = card.querySelector('[data-status-step-list]');
                         if (list instanceof HTMLElement) {
-                            const steps = Array.isArray(tracker?.steps) ? tracker.steps : [];
-                            list.innerHTML = steps.map(renderStep).join('');
+                            list.innerHTML = steps.map((step, index) => renderStep(step, index, steps)).join('');
+                        }
+
+                        const { percent, isRejected } = computeProgress(steps);
+
+                        const progressFill = card.querySelector('[data-status-progress-fill]');
+                        if (progressFill instanceof HTMLElement) {
+                            progressFill.style.width = `${percent}%`;
+                            progressFill.classList.remove('from-success-400', 'via-primary-500', 'to-aura-500', 'from-rose-400', 'to-rose-500');
+                            if (isRejected) {
+                                progressFill.classList.add('from-rose-400', 'to-rose-500');
+                            } else {
+                                progressFill.classList.add('from-success-400', 'via-primary-500', 'to-aura-500');
+                            }
+                            progressFill.setAttribute('data-rejected', isRejected ? '1' : '0');
+                        }
+
+                        const progressLabel = card.querySelector('[data-status-progress-label]');
+                        if (progressLabel instanceof HTMLElement) {
+                            progressLabel.textContent = `${percent}%`;
                         }
 
                         const updatedText = card.querySelector('[data-status-updated-text]');

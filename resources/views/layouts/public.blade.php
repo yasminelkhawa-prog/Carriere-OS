@@ -10,7 +10,7 @@
     <body class="aura-background min-h-full" data-select2-warning="{{ __('ui.toasts.select2_fallback') }}">
         <div class="min-h-screen" x-data="{ openMobileNav: false }">
             <header class="sticky top-0 z-40 border-b border-white/65 bg-white/85 backdrop-blur-2xl">
-                <div class="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+                <div class="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
                     <a href="{{ route('public.home') }}" class="flex items-center">
                         <img
                             src="{{ asset('images/numa-lockup-public.png') }}"
@@ -61,6 +61,12 @@
                                 {{ __('public_site.nav.entry_company') }}
                             </a>
                         @else
+                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                                @csrf
+                                <button type="submit" class="rounded-xl border border-aura-300/70 bg-white px-4 py-2 text-sm font-semibold text-aura-800 transition-weightless hover:bg-aura-50">
+                                    {{ __('auth.logout') }}
+                                </button>
+                            </form>
                             <a href="{{ route('auth.company.dispatch') }}" class="rounded-xl bg-aura-600 px-4 py-2 text-sm font-semibold text-white transition-weightless hover:bg-aura-700">
                                 {{ __('public_site.nav.workspace') }}
                             </a>
@@ -131,21 +137,26 @@
                             </a>
                         @else
                             <a href="{{ route('auth.company.dispatch') }}" class="mt-2 block rounded-lg bg-aura-600 px-3 py-2 text-sm font-semibold text-white">{{ __('public_site.nav.workspace') }}</a>
+                            <form method="POST" action="{{ route('logout') }}" class="mt-2 block">
+                                @csrf
+                                <button type="submit" class="w-full text-left rounded-lg border border-aura-300/70 bg-white px-3 py-2 text-sm font-semibold text-aura-900">
+                                    {{ __('auth.logout') }}
+                                </button>
+                            </form>
                         @endguest
                     </div>
                 </div>
             </header>
 
-            <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <main class="mx-auto w-full max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
                 @yield('content')
             </main>
 
             <footer class="border-t border-white/70 bg-white/80">
-                <div class="mx-auto grid w-full max-w-7xl gap-6 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+                <div class="mx-auto grid w-full max-w-[1600px] gap-6 px-4 py-10 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900">{{ config('app.name') }}</h2>
                         <p class="mt-2 text-sm text-slate-600">{{ __('public_site.footer.about_text') }}</p>
-                        <p class="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{{ __('ui.brand.developed_by') }}</p>
                     </div>
                     <div>
                         <h3 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">{{ __('public_site.footer.quick_links') }}</h3>

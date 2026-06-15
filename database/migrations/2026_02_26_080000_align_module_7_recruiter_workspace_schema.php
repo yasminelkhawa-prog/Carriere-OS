@@ -40,6 +40,20 @@ SQL);
             return;
         }
 
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement("UPDATE application_activity_events SET payload = '{}' WHERE payload IS NULL");
+            DB::statement('UPDATE application_scorings SET global_match_score = 0 WHERE global_match_score IS NULL');
+            DB::statement("UPDATE application_scorings SET vrin_json = json_object('acquired_skills', json_array(), 'missing_skills', json_array()) WHERE vrin_json IS NULL");
+            DB::statement("UPDATE application_scorings SET xai_summary = 'Not scored yet.' WHERE xai_summary IS NULL OR TRIM(xai_summary) = ''");
+            DB::statement('UPDATE application_scorings SET updated_at = CURRENT_TIMESTAMP WHERE updated_at IS NULL');
+
+            if (Schema::hasColumn('unified_interview_reports', 'is_generic_motivation')
+                && ! Schema::hasColumn('unified_interview_reports', 'generic_motivation')) {
+                DB::statement('ALTER TABLE unified_interview_reports RENAME COLUMN is_generic_motivation TO generic_motivation');
+            }
+            return;
+        }
+
         DB::statement("UPDATE application_activity_events SET payload = '{}' WHERE payload IS NULL");
         DB::statement('UPDATE application_scorings SET global_match_score = 0 WHERE global_match_score IS NULL');
         DB::statement("UPDATE application_scorings SET vrin_json = JSON_OBJECT('acquired_skills', JSON_ARRAY(), 'missing_skills', JSON_ARRAY()) WHERE vrin_json IS NULL");

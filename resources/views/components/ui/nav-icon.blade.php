@@ -81,13 +81,16 @@
         'company_values' => [
             'm12 20.25-1.2-1.095C6.15 14.88 3 12 3 8.625A4.875 4.875 0 0 1 7.875 3.75c1.5 0 2.886.705 3.75 1.8.864-1.095 2.25-1.8 3.75-1.8A4.875 4.875 0 0 1 20.25 8.625c0 3.375-3.15 6.255-7.8 10.53L12 20.25Z',
         ],
+        'cv' => [
+            'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z',
+        ],
         default => [
             'M12 6v6l4.5 2.25M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0Z',
         ],
     };
 @endphp
 
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {{ $attributes->class('shrink-0') }} aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 1.25rem; height: 1.25rem;" {{ $attributes->class('shrink-0') }} aria-hidden="true">
     @foreach($paths as $path)
         <path d="{{ $path }}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" />
     @endforeach
