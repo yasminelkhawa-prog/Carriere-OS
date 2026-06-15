@@ -17,13 +17,14 @@ return [
                 ]),
             ],
             'fr' => [
-                'subject' => 'Candidature recue pour {{job_title}}',
-                'body' => implode("\n\n", [
+                'subject' => 'Candidature reçue pour {{job_title}}',
+                'body' => implode("\n", [
                     'Bonjour {{candidate_name}},',
-                    'Nous avons bien recue votre candidature pour "{{job_title}}" chez {{company_name}}.',
-                    'Reference : {{application_reference}}',
-                    'Notre equipe recrutement analysera votre profil et vous contactera si votre experience correspond au poste.',
-                    'Merci pour votre interet.',
+                    'Nous avons bien reçu votre candidature pour "{{job_title}}" chez {{company_name}}.',
+                    'Référence : {{application_reference}}',
+                    '',
+                    'Notre équipe recrutement analysera votre profil et vous contactera si votre expérience correspond au poste.',
+                    'Merci pour votre intérêt.',
                 ]),
             ],
         ],
@@ -40,14 +41,16 @@ return [
                 ]),
             ],
             'fr' => [
-                'subject' => 'Verifiez votre email pour acceder a votre portail candidat - {{job_title}}',
-                'body' => implode("\n\n", [
+                'subject' => 'Vérifiez votre e-mail pour accéder à votre portail candidat - {{job_title}}',
+                'body' => implode("\n", [
                     'Bonjour {{candidate_name}},',
-                    'Nous avons bien recue votre candidature pour "{{job_title}}" chez {{company_name}}.',
-                    'Reference : {{application_reference}}',
-                    'Verifiez votre email pour acceder a votre portail candidat via ce lien securise :',
+                    'Nous avons bien reçu votre candidature pour "{{job_title}}" chez {{company_name}}.',
+                    'Référence : {{application_reference}}',
+                    '',
+                    'Vérifiez votre e-mail pour accéder à votre portail candidat via ce lien sécurisé :',
                     '{{verification_url}}',
-                    'Apres verification, vous serez connecte automatiquement et redirige vers votre portail.',
+                    '',
+                    'Après vérification, vous serez connecté automatiquement et redirigé vers votre portail.',
                 ]),
             ],
         ],
@@ -62,12 +65,14 @@ return [
                 ]),
             ],
             'fr' => [
-                'subject' => 'Confirmation entretien - {{job_title}}',
-                'body' => implode("\n\n", [
+                'subject' => 'Confirmation d\'entretien - {{job_title}}',
+                'body' => implode("\n", [
                     'Bonjour {{candidate_name}},',
-                    'Votre entretien pour {{job_title}} est confirme le {{scheduled_for}} via {{channel}}.',
+                    'Votre entretien pour {{job_title}} est confirmé le {{scheduled_for}} via {{channel}}.',
                     '{{location_label}} : {{location_value}}',
-                    'Cordialement, equipe recrutement',
+                    '',
+                    'Cordialement,',
+                    'L\'équipe recrutement',
                 ]),
             ],
         ],
@@ -82,9 +87,11 @@ return [
             ],
             'fr' => [
                 'subject' => 'Bienvenue chez {{company_name}}',
-                'body' => implode("\n\n", [
+                'body' => implode("\n", [
                     'Bonjour {{candidate_name}},',
-                    'Bienvenue chez {{company_name}}. Votre integration pour {{job_title}} est maintenant active.',
+                    'Bienvenue chez {{company_name}}.',
+                    'Votre intégration pour {{job_title}} est maintenant active.',
+                    '',
                     'Nous sommes ravis de vous accueillir.',
                 ]),
             ],
@@ -100,12 +107,15 @@ return [
                 ]),
             ],
             'fr' => [
-                'subject' => 'Mise a jour candidature - {{job_title}}',
-                'body' => implode("\n\n", [
+                'subject' => 'Mise à jour de votre candidature - {{job_title}}',
+                'body' => implode("\n", [
                     'Bonjour {{candidate_name}},',
                     '{{draft_body}}',
+                    '',
                     'Contexte : {{xai_reason}}',
-                    'Cordialement, equipe recrutement',
+                    '',
+                    'Cordialement,',
+                    'L\'équipe recrutement',
                 ]),
             ],
         ],
