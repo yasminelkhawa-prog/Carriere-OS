@@ -1146,6 +1146,50 @@
             </x-glass-card>
         @endif
 
+        @if(($psyTests ?? collect())->isNotEmpty())
+            <x-glass-card
+                title="Tests Psychologiques"
+                subtitle="Vos tests de personnalité et compétences comportementales">
+                <div class="space-y-4">
+                    @foreach($psyTests as $psyData)
+                        @php
+                            $application = $psyData['application'];
+                            $test = $psyData['test'];
+                            $status = $psyData['status'];
+                        @endphp
+                        <div class="rounded-2xl border border-white/70 bg-white/70 p-5">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-xs uppercase tracking-[0.24em] text-aura-700/85">{{ $application->job?->title ?? 'Poste inconnu' }}</p>
+                                    <h3 class="mt-1 text-lg font-semibold text-slate-900">Test Profil: {{ ucfirst($test->profile) }}</h3>
+                                    @if($status === 'completed')
+                                        <p class="mt-1 text-xs text-slate-600">Score: {{ $test->score }} / 100</p>
+                                    @elseif($status === 'pending')
+                                        <p class="mt-1 text-xs text-slate-600">Expire le: {{ $test->expires_at?->format('d/m/Y H:i') }}</p>
+                                    @endif
+                                </div>
+                                @if($status === 'completed')
+                                    <x-badge class="bg-success-100 text-success-800">Complété</x-badge>
+                                @elseif($status === 'expired')
+                                    <x-badge class="bg-red-100 text-red-800">Expiré</x-badge>
+                                @else
+                                    <x-badge class="bg-warning-100 text-warning-800">En attente</x-badge>
+                                @endif
+                            </div>
+                            @if($status === 'pending')
+                                <div class="mt-4">
+                                    <a href="{{ route('public.psy-test.show', $test->token) }}"
+                                       class="inline-flex rounded-lg border border-aura-300/50 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 transition-weightless hover:bg-white">
+                                        Passer le test
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </x-glass-card>
+        @endif
+
         {{-- Open Roles --}}
         <x-glass-card
             :title="__('master.candidate.open_roles_title')"

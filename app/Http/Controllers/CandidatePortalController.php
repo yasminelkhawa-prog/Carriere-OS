@@ -262,6 +262,7 @@ class CandidatePortalController extends Controller
 
         $videoAssessments = $this->buildVideoAssessments((string) $company->id, $applications);
         $sjtAssessments = $this->buildSjtAssessments((string) $company->id, $applications);
+        $psyTests = $this->buildPsyTests((string) $company->id, $applications);
 
         $videoByApplication = collect($videoAssessments)->keyBy(
             static fn (array $item): string => (string) data_get($item, 'application.id')
@@ -337,6 +338,7 @@ class CandidatePortalController extends Controller
             'strategyLabBriefs' => $strategyLabBriefs,
             'videoAssessments' => $videoAssessments,
             'sjtAssessments' => $sjtAssessments,
+            'psyTests' => $psyTests,
             'statusTrackers' => $statusTrackers,
             'canAccessSocialHub' => $canAccessSocialHub,
             'socialHubEligibleCount' => $socialHubEligibleCount,
@@ -2448,6 +2450,29 @@ class CandidatePortalController extends Controller
             })
             ->filter()
             ->values();
+    }
+
+    private function buildPsyTests(string $companyId, Collection $applications): Collection
+    {
+        if ($applications->isEmpty()) {
+            return collect();
+        }
+
+        $applicationIds = $applications->pluck('id')->map(fn($id) => (string) $id)->all();
+
+        return \App\Models\PsyTest::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereIn('application_id', $applicationIds)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function (\App\Models\PsyTest $test) use ($applications): array {
+                $application = $applications->firstWhere('id', $test->application_id);
+                return [
+                    'application' => $application,
+                    'test' => $test,
+                    'status' => $test->status,
+                ];
+            });
     }
 
     private function resolveNextStep(Application $application, ?array $videoAssessment, ?array $sjtAssessment): string

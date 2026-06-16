@@ -2172,6 +2172,40 @@ class CandidateWorkspaceController extends Controller
 
             $application->update(['current_stage_id' => $toStage->id]);
 
+            if (self::isScreeningStage($toStage->stage_key, $toStage->stage_label)) {
+                $existingPending = \App\Models\PsyTest::withoutGlobalScopes()
+                    ->where('application_id', $application->id)
+                    ->where('status', \App\Models\PsyTest::STATUS_PENDING)
+                    ->where('expires_at', '>', now())
+                    ->exists();
+
+                if (! $existingPending) {
+                    $candidateName = $application->candidate?->full_name ?? 'Candidat';
+                    $nameParts = explode(' ', $candidateName, 2);
+                    
+                    $jobFamily = strtolower($application->job?->job_family ?? '');
+                    $profile = in_array($jobFamily, \App\Models\PsyTest::PROFILES, true) 
+                        ? $jobFamily 
+                        : (\App\Models\PsyTest::PROFILES[0] ?? 'ingenieur');
+
+                    $psyTest = \App\Models\PsyTest::create([
+                        'company_id' => $companyId,
+                        'application_id' => $application->id,
+                        'token' => \Illuminate\Support\Str::random(32),
+                        'candidate_first_name' => $nameParts[0],
+                        'candidate_last_name' => $nameParts[1] ?? '',
+                        'candidate_email' => $application->candidate?->email ?? 'no-reply@example.com',
+                        'profile' => $profile,
+                        'status' => \App\Models\PsyTest::STATUS_PENDING,
+                        'expires_at' => now()->addDays(7),
+                    ]);
+
+                    $testUrl = route('public.psy-test.show', ['token' => $psyTest->token]);
+                    \Illuminate\Support\Facades\Mail::to($psyTest->candidate_email)
+                        ->send(new \App\Mail\PsyTestInvitationMail($psyTest, $testUrl));
+                }
+            }
+
             $jobPipelineStages = JobPipelineStage::withoutGlobalScopes()
                 ->where('job_id', $application->job_id)
                 ->orderBy('display_order', 'asc')
