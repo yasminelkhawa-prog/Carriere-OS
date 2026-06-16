@@ -1696,14 +1696,6 @@ class CandidateWorkspaceController extends Controller
             ->value('setting_value');
 
         $selectedJobId = (string) ($validated['job_id'] ?? '');
-        if ($selectedJobId === '' && $jobs->isNotEmpty()) {
-            $latestApp = \App\Models\Application::withoutGlobalScopes()
-                ->where('company_id', $companyId)
-                ->where('status', \App\Models\Application::STATUS_ACTIVE)
-                ->latest('updated_at')
-                ->first();
-            $selectedJobId = $latestApp ? (string) $latestApp->job_id : (string) $jobs->first()->id;
-        }
 
         $selectedJob = $jobs->firstWhere('id', $selectedJobId);
         $stages = collect();
@@ -1796,6 +1788,66 @@ class CandidateWorkspaceController extends Controller
                     $boardStages->splice($insertIndex, 0, [$rejectedVirtualStage]);
                 }
             }
+        } else {
+            // Virtual Kanban for All Jobs
+            $applications = Application::withoutGlobalScopes()
+                ->with([
+                    'candidate',
+                    'job:id,title,blind_mode_active',
+                    'scoring',
+                    'rejectionDraft',
+                    'currentStage',
+                    'activityEvents' => fn ($q) => $q->latest('created_at')->limit(1),
+                ])
+                ->where('company_id', $companyId)
+                ->orderByDesc('updated_at')
+                ->get();
+
+            $virtualStagesData = [
+                ['id' => 'virtual_applied', 'stage_key' => 'applied', 'stage_label' => 'Candidature', 'is_terminal' => false],
+                ['id' => 'virtual_screen', 'stage_key' => 'screen', 'stage_label' => 'Pré-sélection', 'is_terminal' => false],
+                ['id' => 'virtual_interview', 'stage_key' => 'interview', 'stage_label' => 'Entretien', 'is_terminal' => false],
+                ['id' => 'virtual_offer', 'stage_key' => 'offer', 'stage_label' => 'Offre', 'is_terminal' => true],
+            ];
+
+            foreach ($virtualStagesData as $vsd) {
+                $boardStages->push((object) [
+                    'id' => $vsd['id'],
+                    'target_stage_id' => $vsd['id'],
+                    'stage_key' => $vsd['stage_key'],
+                    'stage_label' => $vsd['stage_label'],
+                    'is_terminal' => $vsd['is_terminal'],
+                    'is_virtual' => true,
+                ]);
+            }
+
+            $rejectedVirtualStage = (object) [
+                'id' => '__rejected_virtual__',
+                'target_stage_id' => '__rejected_virtual__',
+                'stage_key' => 'rejected_virtual',
+                'stage_label' => __('kanban.board.rejected_lane'),
+                'is_terminal' => true,
+                'is_virtual' => true,
+            ];
+            $boardStages->push($rejectedVirtualStage);
+
+            $cardsByStage[(string) $rejectedVirtualStage->id] = $applications
+                ->where('status', Application::STATUS_REJECTED)
+                ->values();
+
+            $activeApps = $applications->where('status', '!=', Application::STATUS_REJECTED);
+
+            foreach ($virtualStagesData as $vsd) {
+                $keys = $vsd['stage_key'] === 'screen' ? ['screen', 'screening'] : [$vsd['stage_key']];
+                
+                $cardsByStage[$vsd['id']] = $activeApps->filter(function($app) use ($keys) {
+                    $key = strtolower($app->currentStage?->stage_key ?? '');
+                    foreach ($keys as $k) {
+                        if (str_contains($key, $k)) return true;
+                    }
+                    return false;
+                })->values();
+            }
         }
 
         return view('candidates.kanban', [
@@ -1821,7 +1873,7 @@ class CandidateWorkspaceController extends Controller
         [$actor, $companyId] = $this->authorizeApplicationAction($request, $application);
 
         $validated = $request->validate([
-            'to_stage_id' => ['required', 'uuid'],
+            'to_stage_id' => ['required', 'string'],
             'transition_type' => ['nullable', Rule::in(['interview', 'rejected', 'standard'])],
             'confirm_terminal' => ['nullable', 'boolean'],
             'reason' => ['nullable', 'string', 'max:2000'],
@@ -1845,10 +1897,26 @@ class CandidateWorkspaceController extends Controller
             'company_id' => ['nullable', 'uuid'],
         ]);
 
-        $toStage = JobPipelineStage::withoutGlobalScopes()
-            ->where('id', $validated['to_stage_id'])
-            ->where('job_id', $application->job_id)
-            ->first();
+        if (str_starts_with($validated['to_stage_id'], 'virtual_')) {
+            $stageKey = str_replace('virtual_', '', $validated['to_stage_id']);
+            $searchKey = $stageKey === 'screen' ? 'screen' : $stageKey;
+            
+            $toStage = JobPipelineStage::withoutGlobalScopes()
+                ->where('job_id', $application->job_id)
+                ->where('stage_key', 'like', '%' . $searchKey . '%')
+                ->first();
+        } elseif ($validated['to_stage_id'] === '__rejected_virtual__') {
+            $toStage = JobPipelineStage::withoutGlobalScopes()
+                ->where('job_id', $application->job_id)
+                ->where('is_terminal', true)
+                ->orderBy('display_order', 'desc')
+                ->first();
+        } else {
+            $toStage = JobPipelineStage::withoutGlobalScopes()
+                ->where('id', $validated['to_stage_id'])
+                ->where('job_id', $application->job_id)
+                ->first();
+        }
 
         if (! $toStage instanceof JobPipelineStage) {
             return $this->transitionBackWithToast($request, __('kanban.errors.invalid_drop'));

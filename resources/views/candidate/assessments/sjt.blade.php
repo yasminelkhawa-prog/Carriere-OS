@@ -44,6 +44,34 @@
                     </div>
                 </form>
 
+                @if(isset($psyTests) && $psyTests->isNotEmpty())
+                    <div class="mt-5 rounded-2xl border border-white/80 bg-white/65 p-4 shadow-aura backdrop-blur-2xl">
+                        <h2 class="text-sm font-semibold text-slate-900 mb-3">Tests Psychométriques</h2>
+                        <div class="grid gap-3">
+                            @foreach($psyTests as $test)
+                                <div class="rounded-xl border border-aura-200/50 bg-white/60 p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900">Profil: {{ ucfirst($test->profile) }}</p>
+                                        <p class="text-xs text-slate-600 mt-1">Statut: 
+                                            <span class="font-medium px-2 py-0.5 rounded-full {{ $test->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : ($test->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700') }}">
+                                                {{ $test->status === 'completed' ? 'Terminé' : ($test->status === 'pending' ? 'En attente' : 'Expiré') }}
+                                            </span>
+                                        </p>
+                                        @if($test->status === 'pending' && $test->expires_at)
+                                            <p class="text-xs text-slate-500 mt-1">Expire le: {{ $test->expires_at->format('d/m/Y H:i') }}</p>
+                                        @endif
+                                    </div>
+                                    @if($test->status === 'pending')
+                                        <a href="{{ route('psy-tests.take', ['token' => $test->token]) }}" target="_blank" class="rounded-lg border border-aura-300/50 bg-white/85 px-4 py-2 text-sm font-medium text-slate-900 shadow-sm transition-weightless hover:bg-white">
+                                            Passer le test
+                                        </a>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mt-5 rounded-2xl border border-white/80 bg-white/65 p-4 shadow-aura backdrop-blur-2xl">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <p class="text-sm font-semibold text-slate-900">{{ __('sjt.progress.title') }}</p>

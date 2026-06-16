@@ -69,14 +69,49 @@
                     <h2 class="mt-2 text-xl font-semibold">{{ __('candidate_portal.dashboard.focus.title') }}</h2>
 
                     @if(($cvTipsCount ?? 0) > 0)
-                        <div class="mt-4 rounded-2xl border border-aura-300/25 bg-white/10 p-4">
-                            <div class="flex flex-wrap items-center justify-between gap-2">
-                                <p class="text-xs uppercase tracking-[0.18em] text-white/65">{{ __('candidate_portal.dashboard.focus.cv_tip.eyebrow') }}</p>
-                                <span class="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85">
-                                    {{ __('candidate_portal.dashboard.focus.cv_tip.counter', ['current' => $cvTipNumber, 'total' => $cvTipsCount]) }}
-                                </span>
+                        <style>
+                            @keyframes cvbotPop { 0%{opacity:0;transform:translateY(16px) scale(.8)} 60%{transform:translateY(-4px) scale(1.04)} 100%{opacity:1;transform:none} }
+                            @keyframes cvbotBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+                            @keyframes cvbotBlink { 0%,90%,100%{transform:scaleY(1)} 95%{transform:scaleY(.12)} }
+                            @keyframes cvbotWave { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(20deg)} }
+                            @keyframes cvbotGlow { 0%,100%{opacity:.45;r:4} 50%{opacity:1;r:5} }
+                            .cvbot-pop{animation:cvbotPop .65s cubic-bezier(.18,1.25,.3,1) both}
+                            .cvbot-bob{animation:cvbotBob 3.2s ease-in-out infinite;transform-origin:center}
+                            .cvbot-eye{animation:cvbotBlink 4.5s infinite;transform-origin:center}
+                            .cvbot-arm{animation:cvbotWave 2.2s ease-in-out infinite;transform-origin:13px 60px}
+                            .cvbot-glow{animation:cvbotGlow 1.6s ease-in-out infinite}
+                            @media (prefers-reduced-motion: reduce){ .cvbot-pop,.cvbot-bob,.cvbot-eye,.cvbot-arm,.cvbot-glow{animation:none} }
+                        </style>
+                        <div class="cvbot-pop mt-4 flex items-end gap-3">
+                            {{-- Mascotte robot --}}
+                            <div class="cvbot-bob shrink-0 drop-shadow-lg">
+                                <svg width="74" height="82" viewBox="0 0 80 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <line x1="40" y1="4" x2="40" y2="18" stroke="#34d399" stroke-width="3" stroke-linecap="round"/>
+                                    <circle class="cvbot-glow" cx="40" cy="5" r="4.5" fill="#34d399"/>
+                                    <rect x="7" y="34" width="7" height="16" rx="3.5" fill="#6d28d9"/>
+                                    <rect x="66" y="34" width="7" height="16" rx="3.5" fill="#6d28d9"/>
+                                    <rect x="12" y="18" width="56" height="44" rx="16" fill="#7c3aed"/>
+                                    <rect x="19" y="26" width="42" height="28" rx="11" fill="#241b46"/>
+                                    <g class="cvbot-eye">
+                                        <circle cx="32" cy="39" r="4.6" fill="#67e8f9"/>
+                                        <circle cx="48" cy="39" r="4.6" fill="#67e8f9"/>
+                                    </g>
+                                    <path d="M33 47 Q40 51.5 47 47" stroke="#67e8f9" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                                    <rect x="24" y="62" width="32" height="21" rx="9" fill="#6d28d9"/>
+                                    <rect class="cvbot-arm" x="9" y="55" width="7" height="19" rx="3.5" fill="#7c3aed"/>
+                                </svg>
                             </div>
-                            <p class="mt-2 text-sm leading-relaxed text-white/85">💡 {{ $cvTipOfDay }}</p>
+                            {{-- Bulle de dialogue --}}
+                            <div class="relative flex-1 rounded-2xl bg-white p-4 text-slate-800 shadow-xl ring-1 ring-black/5">
+                                <span class="absolute -left-1.5 bottom-5 h-4 w-4 rotate-45 rounded-[3px] bg-white"></span>
+                                <div class="relative flex flex-wrap items-center justify-between gap-2">
+                                    <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-aura-700">{{ __('candidate_portal.dashboard.focus.cv_tip.eyebrow') }}</p>
+                                    <span class="inline-flex items-center rounded-full bg-aura-100 px-2.5 py-0.5 text-[11px] font-bold text-aura-700">
+                                        {{ __('candidate_portal.dashboard.focus.cv_tip.counter', ['current' => $cvTipNumber, 'total' => $cvTipsCount]) }}
+                                    </span>
+                                </div>
+                                <p class="relative mt-2 text-sm leading-relaxed text-slate-700">💡 {{ $cvTipOfDay }}</p>
+                            </div>
                         </div>
                     @endif
                 </article>

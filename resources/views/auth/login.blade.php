@@ -22,14 +22,7 @@
                     <h1 class="mt-4 text-3xl font-semibold leading-tight text-white">{{ __('auth.login_title') }}</h1>
                     <p class="mt-4 max-w-md text-sm leading-relaxed text-slate-300">{{ __('auth.login_subtitle') }}</p>
 
-                    <div class="mt-8 space-y-3 text-sm">
-                        <div class="rounded-2xl border border-success-300/25 bg-success-400/10 px-4 py-3 text-success-100">
-                            {{ __('auth.login_feature_one') }}
-                        </div>
-                        <div class="rounded-2xl border border-aura-300/25 bg-aura-400/10 px-4 py-3 text-indigo-100">
-                            {{ __('auth.login_feature_two') }}
-                        </div>
-                    </div>
+
                 </aside>
 
                 <div class="px-6 py-8 sm:px-8 lg:px-10 lg:py-12">

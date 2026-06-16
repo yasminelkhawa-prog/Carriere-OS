@@ -1,8 +1,8 @@
-<x-shell-layout :title="__('kanban.title').' | '.config('app.name')">
+<x-shell-layout :fullWidth="true" :title="__('kanban.title').' | '.config('app.name')">
     <div
         x-data="kanbanBoard()"
         x-init="init()"
-        class="space-y-4"
+        class="space-y-2"
     >
         <!-- Floating Alerts (Fixed top right to avoid layout shift) -->
         <div class="fixed right-6 top-6 z-50 flex flex-col gap-3">
@@ -25,9 +25,9 @@
         </div>
 
         <!-- Header Section -->
-        <div class="mb-6 flex flex-col justify-end gap-5 md:flex-row md:items-end">
+        <div class="mb-2 flex flex-col gap-5 md:flex-row md:items-center">
             
-            <div class="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center ml-auto">
+            <div class="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 @if($requiresCompanySelection)
                     <div class="text-sm text-amber-600 font-medium bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
                         {{ __('kanban.select_company_message') }}
@@ -111,7 +111,6 @@
                                 {{ $cards->count() }}
                             </div>
                         </header>
-                        
                         <style>
                             .hide-scroll::-webkit-scrollbar { display: none; }
                             .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }

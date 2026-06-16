@@ -136,9 +136,14 @@ class CandidateAssessmentController extends Controller
         $scoredCount = $scenarioStatuses->where('has_score', true)->count();
         $totalCount = $scenarios->count();
 
+        $psyTests = $selectedApplication instanceof Application
+            ? \App\Models\PsyTest::where('application_id', $selectedApplication->id)->orderByDesc('created_at')->get()
+            : collect();
+
         return view('candidate.assessments.sjt', [
             'applications' => $applications,
             'selectedApplication' => $selectedApplication,
+            'psyTests' => $psyTests,
             'scenarios' => $scenarios,
             'selectedScenario' => $selectedScenario,
             'selectedResponse' => $selectedResponse,

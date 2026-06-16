@@ -46,6 +46,9 @@ class PsyTestController extends Controller
             ])
             ->where('company_id', $companyId)
             ->where('status', Application::STATUS_ACTIVE)
+            ->whereHas('currentStage', function ($q) {
+                $q->whereIn('stage_key', ['screen', 'screening']);
+            })
             ->get();
 
         return view('admin.psy-tests.index', compact('psyTests', 'applications'));
